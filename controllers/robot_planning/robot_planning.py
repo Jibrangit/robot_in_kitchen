@@ -17,6 +17,7 @@ import time
 from bresenham import plot_line
 from robot_controller import Controller
 from motion_planning import astar
+from mapping import RangeFinderMapper, MappingParams, RangeFinderParams
 
 
 LIDAR_NUM_READINGS = 667
@@ -38,24 +39,8 @@ KERNEL_SIZE = 43
 class RobotState(Enum):
     IDLE = 0
     MAPPING = 1
-    PLANNING_AND_EXECUTION = 2
-
-
-def plan_path(map, start, goal):
-    pstart = world2map(start[0], start[1])
-    pgoal = world2map(goal[0], goal[1])
-
-    path = astar(map, pstart, pgoal)
-    return [map2world(px, py) for px, py in path]
-
-
-def display_path(map, path):
-    pixel_path = [world2map(x, y) for x, y in path]
-    plt.imshow(map)
-    for p in pixel_path:
-        plt.plot(p[1], p[0], "r*")
-        plt.show()
-        plt.pause(0.000001)
+    PLANNING = 2
+    NAVIGATION = 3
 
 
 class RobotDeviceIO:
@@ -92,134 +77,47 @@ class RobotDeviceIO:
         self._rightMotor.setVelocity(vr)
 
 
-class Mapper:
-    def __init__(self):
-        self._map = np.zeros((MAP_LENGTH, MAP_LENGTH), dtype=float)
-        self._pose = (0, 0)
-
-    def world2map(self, x, y) -> Tuple[float]:
-        self._pose = (x, y)
-        px = np.round(((x - TOP_LEFT_X) / ARENA_WIDTH) * MAP_LENGTH)
-        py = np.round(((TOP_LEFT_Y - y) / ARENA_LENGTH) * MAP_LENGTH)
-
-        return int(px), int(py)
-
-    def _is_index_in_bounds(self, px, py):
-        return 0 <= px < MAP_LENGTH and 0 <= py < MAP_LENGTH
-
-    def map2world(self, px, py) -> Tuple[float]:
-        x = ((px / MAP_LENGTH) * ARENA_WIDTH) + TOP_LEFT_X
-        y = TOP_LEFT_Y - ((py / MAP_LENGTH) * ARENA_LENGTH)
-        return x, y
-
-    def compute_cspace(self):
-        kernel = np.ones((KERNEL_SIZE, KERNEL_SIZE))
-        cmap = self._map
-        cmap = signal.convolve2d(self._map, kernel, mode="same")
-        cmap = np.clip(cmap, 0, 1)  # As convolution increases values to over 1.
-        cspace = cmap > OCCUPANCY_GRID_THRESHOLD
-        return cspace
-
-    def display_map(self, display):
-        # Draw configuration map
-        for row in np.arange(0, MAP_LENGTH):
-            for col in np.arange(0, MAP_LENGTH):
-                v = min(int((self._map[row, col]) * 255), 255)
-                if v > 0.01:
-                    display.setColor(v * 256**2 + v * 256 + v)
-                    display.drawPixel(row, col)
-
-    def display_cspace(self, cspace):
-        plt.imshow(cspace)
-        plt.show()
-
-    def save_cspace(self, cspace):
-        np.save("cspace", cspace)
-
-    def get_map(self):
-        return self._map
-
-
-class RangeFinderMapper(Mapper):
-    def __init__(self, lidar):
-        super().__init__()
-        self._lidar = lidar
-        self._laser_line = None
-
-        self._angles = np.linspace(2 * np.pi / 3, -2 * np.pi / 3, LIDAR_NUM_READINGS)
-        self._angles = self._angles[LIDAR_FIRST_READING_INDEX:LIDAR_LAST_READING_INDEX]
-
-    def enable_lidar(self, timestep):
-        self._lidar.enable(timestep)
-        self._lidar.enablePointCloud()
-
-    def _get_lidar_readings(self) -> List[float]:
-        ranges = self._lidar.getRangeImage()
-        ranges[ranges == np.inf] = 100
-        ranges = ranges[LIDAR_FIRST_READING_INDEX:LIDAR_LAST_READING_INDEX]
-
-        return np.array(
-            [
-                ranges * np.cos(self._angles) + LIDAR_ROBOT_X_OFFSET,
-                ranges * np.sin(self._angles),
-                np.ones(LIDAR_ACTUAL_NUM_READINGS),
-            ]
-        )
-
-    def _lidar_robot_to_world(self, xw, yw, theta) -> np.array:
-        X_i = self._get_lidar_readings()
-        w_T_r = np.array(
-            [
-                [np.cos(theta), -np.sin(theta), xw],
-                [np.sin(theta), np.cos(theta), yw],
-                [0, 0, 1],
-            ]
-        )
-
-        return w_T_r @ X_i
-
-    def generate_map(self, robot_pose) -> None:
-        X_w = self._lidar_robot_to_world(robot_pose[0], robot_pose[1], robot_pose[2])
-        px_robot, py_robot = self.world2map(robot_pose[0], robot_pose[1])
-
-        for i in range(LIDAR_ACTUAL_NUM_READINGS):
-            px, py = self.world2map(X_w[0][i], X_w[1][i])
-            if self._map[px, py] < 1:
-                self._map[px, py] += 0.01
-
-            # Reduce probability of obstacle for all pixels in the laser's line of sight using Bresenham's algorithm.
-            laser_line_coordinates = plot_line(px_robot, py_robot, px, py)
-            self._laser_line = laser_line_coordinates
-            for coordinate in laser_line_coordinates[1:-1]:
-                px_laser = coordinate[0]
-                py_laser = coordinate[1]
-
-                if self._map[px_laser, py_laser] > 0.01:
-                    self._map[px_laser, py_laser] -= 0.001
-
-    def display_laser_line_of_sight(self, display):
-        # Draw configuration map
-        for l in self._laser_line:
-            display.setColor(0xFF0000)
-            display.drawPixel(l[0], l[1])
-
-
 def main():
     robot = Supervisor()
     timestep = int(robot.getBasicTimeStep())
     robot_comms = RobotDeviceIO(robot)
     robot_comms.initialize_devices(timestep)
 
-    mapper = RangeFinderMapper(robot.getDevice("Hokuyo URG-04LX-UG01"))
+    mapper = RangeFinderMapper(
+        robot.getDevice("Hokuyo URG-04LX-UG01"),
+        mapping_params=MappingParams(
+            MAP_LENGTH,
+            ARENA_WIDTH,
+            ARENA_LENGTH,
+            TOP_LEFT_X,
+            TOP_LEFT_Y,
+            OCCUPANCY_GRID_THRESHOLD,
+            KERNEL_SIZE,
+        ),
+        range_finder_params=RangeFinderParams(
+            LIDAR_NUM_READINGS,
+            2 * np.pi / 3,
+            -2 * np.pi / 3,
+            LIDAR_ACTUAL_NUM_READINGS,
+            LIDAR_FIRST_READING_INDEX,
+            LIDAR_LAST_READING_INDEX,
+            LIDAR_ROBOT_X_OFFSET,
+        ),
+    )
     mapper.enable_lidar(timestep)
 
     map_display = robot.getDevice("map_display")
     cspace_display = robot.getDevice("cspace_display")
 
     home_position = None
+    goal_position = (-1.65, 0.0)
     robot_state = RobotState.IDLE
+    planned = False
+
     mapping_controllers = None
     mapping_controller_idx = 0
+
+    planning_controller = None
 
     marker = robot.getFromDef("marker").getField("translation")
     xs = []
@@ -257,9 +155,8 @@ def main():
 
                 cspace = mapper.compute_cspace()
                 mapper.save_cspace(cspace)
-                mapper.display_cspace(cspace)
 
-                robot_state = RobotState.PLANNING_AND_EXECUTION
+                robot_state = RobotState.PLANNING
 
             elif mapping_controllers[mapping_controller_idx].completed():
                 mapping_controller_idx += 1
@@ -276,16 +173,33 @@ def main():
 
                 # Map the environment
                 mapper.generate_map((xw, yw, theta))
-                # mapper.display_map(map_display)
-                # for x, y in zip(xs, ys):
-                #     px, py = mapper.world2map(x, y)
-                #     map_display.setColor(0x00FF00)
-                #     map_display.drawPixel(px, py)
+                mapper.display_map(map_display)
 
                 # Drive the robot
                 vl, vr = mapping_controllers[mapping_controller_idx].get_input_vels(
                     (xw, yw, theta)
                 )
+                robot_comms.set_motors_vels(vl, vr)
+
+        if robot_state == RobotState.PLANNING:
+            cspace = np.load("cspace.npy")
+            p_start = mapper.world2map(home_position[0], home_position[1])
+            p_goal = mapper.world2map(goal_position[0], goal_position[1])
+
+            plan = astar(cspace, p_start, p_goal)
+            for idx, pose in enumerate(plan):
+                plan[idx] = mapper.map2world(pose[0], pose[1])
+
+            planning_controller = Controller(WHEEL_MAX_SPEED_RADPS, plan)
+            robot_state = RobotState.NAVIGATION
+
+        if robot_state == RobotState.NAVIGATION and planning_controller:
+            if planning_controller.completed():
+                robot_comms.set_motors_vels(0.0, 0.0)
+                break
+
+            else:
+                vl, vr = planning_controller.get_input_vels((xw, yw, theta))
                 robot_comms.set_motors_vels(vl, vr)
 
 
