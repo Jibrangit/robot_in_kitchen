@@ -3,20 +3,25 @@ from typing import Dict, Tuple, List
 import matplotlib.pyplot as plt
 
 np.random.seed(4)
+
+
 class RRT:
     def __init__(self, start_node: Tuple):
         self._start_node = start_node
         self._tree = {}
+        self._graph = {self._start_node: []}
         self._iterations = 1000
         self._delta_q = 1
         self._last_node = None
 
     def _add_closest_node_in_tree(self, new_node: Tuple):
+        nearest_node = None
+
         if not self._tree:
-            self._tree.update({new_node: self._start_node})
+            nearest_node = self._start_node
+
         else:
             qdist = float("inf")
-            nearest_node = None
             for node in self._tree:
                 dist = np.sqrt(
                     (new_node[0] - node[0]) ** 2 + (new_node[1] - node[1]) ** 2
@@ -25,7 +30,8 @@ class RRT:
                     qdist = dist
                     nearest_node = node
 
-            self._tree.update({new_node: nearest_node})
+        self._tree.update({new_node: nearest_node})
+        self._add_to_graph(new_node, nearest_node)
 
     def build_tree(self, goal):
         self._goal = goal
@@ -46,6 +52,17 @@ class RRT:
                 self._last_node = new_node
                 break
 
+    def _add_to_graph(self, node, parent):
+        if node not in self._graph:
+            self._graph[node] = [parent]
+        else:
+            self._graph[node].append(parent)
+
+        if parent not in self._graph:
+            self._graph[parent] = [node]
+        else:
+            self._graph[parent].append(node)
+
     def visualize_path(self):
         for node, parent in self._tree.items():
             plt.plot(
@@ -55,7 +72,7 @@ class RRT:
                 linewidth=2,
                 markersize=3,
             )
-        curr_node = self._last_node 
+        curr_node = self._last_node
         while curr_node != self._start_node:
             parent = self._tree[curr_node]
             plt.plot(
@@ -78,6 +95,6 @@ rrt = RRT(qstart)
 rrt.build_tree(qgoal)
 
 rrt.visualize_path()
-plt.plot(qstart[1], qstart[0], 'y-*', markersize=5)
-plt.plot(qgoal[1], qgoal[0], 'g-*', markersize=5)
+plt.plot(qstart[1], qstart[0], "y-*", markersize=5)
+plt.plot(qgoal[1], qgoal[0], "g-*", markersize=5)
 plt.show()
