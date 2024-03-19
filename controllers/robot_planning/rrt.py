@@ -1,6 +1,7 @@
 import numpy as np
 from typing import Dict, Tuple, List
 import matplotlib.pyplot as plt
+from motion_planning import astar_weighted_graph
 
 np.random.seed(4)
 
@@ -11,7 +12,7 @@ class RRT:
         self._tree = {}
         self._graph = {self._start_node: []}
         self._iterations = 1000
-        self._delta_q = 1
+        self._delta_q = 0.1
         self._last_node = None
 
     def _add_closest_node_in_tree(self, new_node: Tuple):
@@ -54,14 +55,14 @@ class RRT:
 
     def _add_to_graph(self, node, parent):
         if node not in self._graph:
-            self._graph[node] = [parent]
+            self._graph[node] = [(parent[0], parent[1], 1)]
         else:
-            self._graph[node].append(parent)
+            self._graph[node].append((parent[0], parent[1], 1))
 
         if parent not in self._graph:
-            self._graph[parent] = [node]
+            self._graph[parent] = [(node[0], node[1], 1)]
         else:
-            self._graph[parent].append(node)
+            self._graph[parent].append((node[0], node[1], 1))
 
     def visualize_path(self):
         for node, parent in self._tree.items():
@@ -82,8 +83,21 @@ class RRT:
                 linewidth=2,
                 markersize=3,
             )
-            plt.pause(0.5)
+            plt.pause(0.1)
             curr_node = parent
+
+    def visualize_graph(self):
+        for node, neighbors in self._graph.items():
+            for neighbor in neighbors:
+                plt.plot(
+                    [node[1], neighbor[1]], [node[0], neighbor[0]], "b-*", markersize=5
+                )
+
+    def get_graph(self):
+        return self._graph
+
+    def get_goal_node(self):
+        return self._last_node
 
 
 map = np.ones((200, 300)) * 255
@@ -93,8 +107,16 @@ qgoal = (180, 180)
 
 rrt = RRT(qstart)
 rrt.build_tree(qgoal)
+rrt.visualize_graph()
+graph = rrt.get_graph()
 
-rrt.visualize_path()
-plt.plot(qstart[1], qstart[0], "y-*", markersize=5)
-plt.plot(qgoal[1], qgoal[0], "g-*", markersize=5)
+goal_node = rrt.get_goal_node()
+
+path = astar_weighted_graph(graph, qstart, goal_node)
+curr_node = path[0]
+for path_node in path:
+    plt.plot([curr_node[1], path_node[1]], [curr_node[0], path_node[0]], "r-*")
+    curr_node = path_node
+    plt.pause(0.000001)
+
 plt.show()

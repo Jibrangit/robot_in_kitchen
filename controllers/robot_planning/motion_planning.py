@@ -3,6 +3,7 @@ import numpy as np
 from collections import deque, defaultdict
 from heapq import heapify, heappush, heappop
 import matplotlib.pyplot as plt
+from collections import deque
 import time
 
 
@@ -28,7 +29,7 @@ def get_diagonal_neighbors(map: np.array, idx: t.Tuple) -> t.List:
     for n_idx in neighbor_indexes_costs:
         n = (idx[0] + n_idx[0], idx[1] + n_idx[1], n_idx[2])
         if 0 <= n[0] < width and 0 <= n[1] < height:
-            if not map[n[0], n[1]]:
+            if not map[n[0], n[1]]:  # Unoccupied cell
                 neighbors.append(n)
     return neighbors
 
@@ -45,6 +46,126 @@ def get_diagonal_distance(x1, y1, x2, y2):
 
 def get_euclidean_distance(x1, y1, x2, y2):
     return np.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
+
+
+def get_weighted_graph_from_map(map: np.array, start_node: tuple):
+    """
+    Parameters
+    ----------
+    map: Boolean occupancy grid, False is Unoccupied, True is occupied.
+    start_node: Node from where to start BFS, for a map to generate a graph to accurately capture C-space, this node must be in that C-space.
+
+    Returns
+    -------
+    Dict
+        Each key is index of the node (x, y) and the value is a list of other nodes along with the cost to get to them (x, y, cost)
+    """
+    weighted_graph = {}
+    visited = set()
+    start_time = time.time()
+
+    if map[start_node]:
+        print("Start position is non empty!")
+        return {}
+
+    bfs_q = deque()
+    bfs_q.append(start_node)
+
+    while bfs_q:
+        curr_node = bfs_q.popleft()
+        if curr_node not in visited:
+            neighbors = get_diagonal_neighbors(map, curr_node)
+            weighted_graph.update({curr_node: neighbors})
+            visited.add(curr_node)
+            for neighbor in neighbors:
+                bfs_q.append((neighbor[0], neighbor[1]))
+    print(f"Weighted graph created in {time.time() - start_time} seconds")
+    return weighted_graph
+
+
+def astar_weighted_graph(
+    weighted_graph: dict, start: tuple, goal: tuple
+) -> list[tuple]:
+    start_time = time.time()
+    visited = set()  # Set of Tuples
+    connections = {}  # Dictionary of tuple (node) and list (parent)
+
+    distances = {}
+    for node in weighted_graph:
+        distances[(node[0], node[1])] = float("inf")
+
+    distances[start] = 0
+
+    q = []
+    heapify(q)
+
+    connections[start] = [list(start)]
+    heappush(
+        q,
+        (
+            distances[start]
+            + get_euclidean_distance(goal[0], goal[1], start[0], start[1]),
+            start,
+        ),
+    )
+
+    while q:
+        curr = heappop(q)  # (Distance from start, node)
+        curr_node = curr[1]
+        if curr_node == goal:
+            print(f"Path found in {time.time() - start_time} seconds!")
+            path_node = curr_node
+            path = []
+            while path_node != start:
+                path.append(path_node)
+                path_node = tuple(connections[path_node])
+
+            path.append(start)
+            path.reverse()
+            return path
+
+        else:
+            neighbors = weighted_graph[
+                curr_node
+            ]  # List of Tuples[x, y, increment cost]
+            for neighbor in neighbors:
+                neighbor_idx = (neighbor[0], neighbor[1])
+                cost = distances[curr_node] + neighbor[2]
+
+                if (neighbor_idx) not in visited:
+                    connections[neighbor_idx] = list(curr_node)
+                    distances[neighbor_idx] = cost
+                    visited.add(neighbor_idx)
+                    heappush(
+                        q,
+                        (
+                            distances[neighbor_idx]
+                            + get_euclidean_distance(
+                                goal[0], goal[1], neighbor_idx[0], neighbor_idx[1]
+                            ),
+                            neighbor_idx,
+                        ),
+                    )
+
+                elif (neighbor_idx) in visited and cost < distances[neighbor_idx]:
+                    connections[neighbor_idx] = list(curr_node)
+                    distances[neighbor_idx] = cost
+                    heappush(
+                        q,
+                        (
+                            distances[neighbor_idx]
+                            + get_euclidean_distance(
+                                goal[0], goal[1], neighbor_idx[0], neighbor_idx[1]
+                            ),
+                            neighbor_idx,
+                        ),
+                    )
+
+                else:
+                    continue
+
+    print("Path to goal could not be found!!")
+    return []
 
 
 def astar(map: np.array, start: t.Tuple, goal: t.Tuple) -> t.List[t.Tuple]:
@@ -155,4 +276,12 @@ def astar(map: np.array, start: t.Tuple, goal: t.Tuple) -> t.List[t.Tuple]:
 
 if __name__ == "__main__":
     map = np.load("cspace.npy")
-    path = astar(map, (75, 75), (200, 200))
+    # path = astar(map, (75, 75), (200, 200))
+    plt.imshow(map)
+    graph = get_weighted_graph_from_map(map, (57, 30))
+    path = astar_weighted_graph(graph, (57, 30), (144, 260))
+
+    for path_node in path:
+        plt.plot(path_node[1], path_node[0], "r*")
+        plt.pause(0.000001)
+    plt.show()
