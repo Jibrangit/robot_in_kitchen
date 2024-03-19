@@ -84,7 +84,7 @@ def get_weighted_graph_from_map(map: np.array, start_node: tuple):
 
 
 def astar_weighted_graph(
-    weighted_graph: dict, start: tuple, goal: tuple
+    weighted_graph: dict, start: tuple, goal: tuple, plot=False
 ) -> list[tuple]:
     start_time = time.time()
     visited = set()  # Set of Tuples
@@ -112,6 +112,11 @@ def astar_weighted_graph(
     while q:
         curr = heappop(q)  # (Distance from start, node)
         curr_node = curr[1]
+
+        if plot:
+            plt.plot(curr_node[1], curr_node[0], 'y-*')
+            plt.pause(0.000001)
+
         if curr_node == goal:
             print(f"Path found in {time.time() - start_time} seconds!")
             path_node = curr_node
