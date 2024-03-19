@@ -278,15 +278,104 @@ def astar(map: np.array, start: t.Tuple, goal: t.Tuple) -> t.List[t.Tuple]:
     print("Path to goal could not be found!!")
     return []
 
+class RRT:
+    def __init__(self, start_node: tuple, goal_bias = 0.1):
+        self._start_node = start_node
+        self._tree = {self._start_node: []}
+        self._iterations = 1000
+        self._delta_q = 5
+        self._last_node = None
+        self._goal_bias = goal_bias
+        self._map_length = 300
 
-if __name__ == "__main__":
-    map = np.load("cspace.npy")
-    # path = astar(map, (75, 75), (200, 200))
-    plt.imshow(map)
-    graph = get_weighted_graph_from_map(map, (57, 30))
-    path = astar_weighted_graph(graph, (57, 30), (144, 260))
+    def _add_node_to_tree(self, rand_node: tuple, plot=False):
+        nearest_node = None
+        qdist = float("inf")
 
-    for path_node in path:
-        plt.plot(path_node[1], path_node[0], "r*")
-        plt.pause(0.000001)
-    plt.show()
+        for node in self._tree.keys():
+            dist = np.sqrt(
+                (rand_node[0] - node[0]) ** 2 + (rand_node[1] - node[1]) ** 2
+            )
+            if dist < qdist:
+                qdist = dist
+                nearest_node = node
+
+        nearest_to_new_dist = np.sqrt(
+            (rand_node[0] - nearest_node[0]) ** 2
+            + (rand_node[1] - nearest_node[1]) ** 2
+        )
+
+        step = self._delta_q / nearest_to_new_dist
+        new_node = (
+            nearest_node[0] + ((rand_node[0] - nearest_node[0]) * step),
+            nearest_node[1] + ((rand_node[1] - nearest_node[1]) * step),
+        )
+
+        if plot:
+            plt.plot(self._start_node[1], self._start_node[0], "r-*", markersize=10)
+            plt.plot(self._goal[1], self._goal[0], "g-*", markersize=10)
+            plt.arrow(
+                nearest_node[1],
+                nearest_node[0],
+                new_node[1] - nearest_node[1],
+                new_node[0] - nearest_node[0],
+                shape="full",
+                width=0.5,
+            )
+            plt.pause(0.0000001)
+
+        self._tree[nearest_node].append((new_node[0], new_node[1], qdist))
+        self._tree[new_node] = []
+        return new_node
+
+    def build_tree(self, goal, plot=False):
+        start_time = time.time()
+        self._goal = goal
+
+        for k in range(self._iterations):
+
+            rand_node = (
+                np.random.random_sample() * self._map_length,
+                np.random.random_sample() * self._map_length,
+            )
+            if np.random.rand() < self._goal_bias:
+                rand_node = self._goal
+
+            new_node = self._add_node_to_tree(rand_node, plot)
+            if (
+                np.sqrt(
+                    (new_node[0] - self._goal[0]) ** 2
+                    + (new_node[1] - self._goal[1]) ** 2
+                )
+                < self._delta_q
+            ):
+                print(
+                    f"Goal Found ==> {new_node} in {time.time() - start_time} seconds!!!!"
+                )
+                self._last_node = new_node
+                break
+
+    def get_tree(self):
+        return self._tree
+
+    def get_goal_node(self):
+        return self._last_node
+
+    def _plot_node(self, node):
+        for child in self._tree[node]:
+            self._plot_node((child[0], child[1]))
+            plt.arrow(
+                node[1],
+                node[0],
+                child[1] - node[1],
+                child[0] - node[0],
+                shape="full",
+                width=0.5,
+            )
+
+    def visualize_tree(self):
+        plt.plot(self._start_node[1], self._start_node[0], "r-*", markersize=10)
+        plt.plot(self._last_node[1], self._last_node[0], "g-*", markersize=10)
+        self._plot_node(self._start_node)
+
+
