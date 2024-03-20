@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 from collections import deque
 import time
 from skimage.draw import line_nd
+from dataclasses import dataclass
 
 
 def get_diagonal_neighbors(map: np.array, idx: t.Tuple) -> t.List:
@@ -47,6 +48,7 @@ def get_diagonal_distance(x1, y1, x2, y2):
 
 def get_euclidean_distance(x1, y1, x2, y2):
     return np.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
+
 
 def get_euclidean_distance(node1: tuple, node2: tuple):
     return np.sqrt((node2[0] - node1[0]) ** 2 + (node2[1] - node1[1]) ** 2)
@@ -107,8 +109,7 @@ def astar_weighted_graph(
     heappush(
         q,
         (
-            distances[start]
-            + get_euclidean_distance(goal, start),
+            distances[start] + get_euclidean_distance(goal, start),
             start,
         ),
     )
@@ -149,9 +150,7 @@ def astar_weighted_graph(
                         q,
                         (
                             distances[neighbor_idx]
-                            + get_euclidean_distance(
-                                goal, neighbor_idx
-                            ),
+                            + get_euclidean_distance(goal, neighbor_idx),
                             neighbor_idx,
                         ),
                     )
@@ -163,9 +162,7 @@ def astar_weighted_graph(
                         q,
                         (
                             distances[neighbor_idx]
-                            + get_euclidean_distance(
-                                goal, neighbor_idx
-                            ),
+                            + get_euclidean_distance(goal, neighbor_idx),
                             neighbor_idx,
                         ),
                     )
@@ -197,8 +194,7 @@ def astar(map: np.array, start: t.Tuple, goal: t.Tuple) -> t.List[t.Tuple]:
     heappush(
         q,
         (
-            distances[start]
-            + get_euclidean_distance(goal, start),
+            distances[start] + get_euclidean_distance(goal, start),
             start,
         ),
     )
@@ -250,9 +246,7 @@ def astar(map: np.array, start: t.Tuple, goal: t.Tuple) -> t.List[t.Tuple]:
                         q,
                         (
                             distances[neighbor_idx]
-                            + get_euclidean_distance(
-                                goal, neighbor_idx
-                            ),
+                            + get_euclidean_distance(goal, neighbor_idx),
                             neighbor_idx,
                         ),
                     )
@@ -264,9 +258,7 @@ def astar(map: np.array, start: t.Tuple, goal: t.Tuple) -> t.List[t.Tuple]:
                         q,
                         (
                             distances[neighbor_idx]
-                            + get_euclidean_distance(
-                                goal, neighbor_idx
-                            ),
+                            + get_euclidean_distance(goal, neighbor_idx),
                             neighbor_idx,
                         ),
                     )
@@ -296,10 +288,18 @@ def is_path_open(map, start, end):
     return True
 
 
+@dataclass
+class NodeInfo:
+    parent: tuple
+    cost: float
+
+
 class RRT:
     def __init__(self, map: np.array, start_node: tuple, goal_bias=0.1):
         self._start_node = start_node
-        self._tree = {self._start_node: []} # Each node is in the list is (x, y, Distance from parent node to node)
+        self._tree = {
+            self._start_node: []
+        }  # Each node is in the list is (x, y, Distance from parent node to node)
         self._iterations = 4000
         self._delta_q = 7
         self._last_node = None
@@ -307,7 +307,7 @@ class RRT:
         self._map = map
         self._map_width = len(map)
         self._map_height = len(map[0])
-    
+
     def _find_nearest_node(self, rand_node: tuple):
         nearest_node = None
         qdist = float("inf")
@@ -317,12 +317,15 @@ class RRT:
             if dist < qdist:
                 qdist = dist
                 nearest_node = node
-        
-        return nearest_node
-    
-    def _find_new_node(self, rand_node, nearest_node) -> t.Union[tuple, None]:
 
-        nearest_to_rand_dist = get_euclidean_distance(rand_node, nearest_node) 
+        return nearest_node
+
+    def _generate_new_node(self, rand_node, nearest_node) -> t.Union[tuple, None]:
+        """
+        Returns None if path is obstructed.
+        """
+
+        nearest_to_rand_dist = get_euclidean_distance(rand_node, nearest_node)
         step = self._delta_q / nearest_to_rand_dist
         new_node = (
             nearest_node[0] + ((rand_node[0] - nearest_node[0]) * step),
@@ -331,17 +334,19 @@ class RRT:
 
         if not is_path_open(self._map, nearest_node, new_node):
             return None
-        
+
         return new_node
 
     def _add_node_to_tree(self, rand_node: tuple, plot=False) -> t.Union[tuple, None]:
         nearest_node = self._find_nearest_node(rand_node)
-        new_node = self._find_new_node(rand_node, nearest_node)
-        
+        new_node = self._generate_new_node(rand_node, nearest_node)
+
         if not new_node:
-            return None 
-        
-        self._tree[nearest_node].append((new_node[0], new_node[1], get_euclidean_distance(nearest_node, new_node)))
+            return None
+
+        self._tree[nearest_node].append(
+            (new_node[0], new_node[1], get_euclidean_distance(nearest_node, new_node))
+        )
         self._tree[new_node] = []
 
         if plot:
@@ -374,7 +379,9 @@ class RRT:
 
             new_node = self._add_node_to_tree(rand_node, plot)
 
-            if new_node and (get_euclidean_distance(new_node, self._goal) < self._delta_q):
+            if new_node and (
+                get_euclidean_distance(new_node, self._goal) < self._delta_q
+            ):
                 print(
                     f"Goal Found ==> {new_node} in {time.time() - start_time} seconds!!!!"
                 )
@@ -404,13 +411,68 @@ class RRT:
         plt.plot(self._last_node[1], self._last_node[0], "g-*", markersize=10)
         self._plot_node(self._start_node)
 
-# class RRT_star(RRT):
-#     def __init__(self, map: np.array, start_node: tuple, goal_bias=0.1):
-#         super().__init__(map, start_node, goal_bias)
-#         self._tree = {start_node : (None, 0)}   # Node : Parent, Cost (or) Vertices : Edges 
 
-#     def _add_node_to_tree(self, rand_node: tuple, plot=False):
-#         x_nearest = None 
-#         for node in self._tree.keys():
+class RRT_star(RRT):
+    def __init__(self, map: np.array, start_node: tuple, goal_bias=0.1):
+        super().__init__(map, start_node, goal_bias)
+        self._tree = {
+            start_node: NodeInfo(start_node, 0)
+        }  # Node : Parent, Cost (or) Vertices : Edges
+        self._ball_distance = 10
 
+    def _find_neighboring_nodes(self, curr_node) -> list[tuple]:
+        return [
+            node
+            for node in self._tree.keys()
+            if get_euclidean_distance(node, curr_node) < self._ball_distance
+        ]
 
+    def _find_best_parent(self, new_node, neighboring_nodes):
+        best_parent = None 
+        qdist = float('inf')
+        for node in neighboring_nodes:
+            if get_euclidean_distance(node, new_node) < qdist:
+                best_parent = node 
+        return best_parent
+            
+
+    def _add_node_to_tree(self, rand_node: tuple, plot=False):
+
+        # Get a new node candidate
+        nearest_node = self._find_nearest_node(rand_node)
+        new_node = self._generate_new_node(rand_node, nearest_node)
+
+        if not new_node:
+            return None
+
+        # Find best parent for new node and add to tree
+        near_nodes_to_new = self._find_neighboring_nodes(new_node)
+        best_parent_node = self._find_best_parent(new_node, near_nodes_to_new)
+        self._tree[new_node] = NodeInfo(
+            best_parent_node,
+            self._tree[best_parent_node].cost
+            + get_euclidean_distance(best_parent_node, new_node),
+        )
+
+        # Go through all neighboring nodes retrieved and check if the new node is a better parent (Re-wiring)
+        for near_node in near_nodes_to_new:
+            cost_from_new = self._tree[new_node].cost + get_euclidean_distance(
+                near_node, new_node
+            )
+            if self._tree[near_node].cost > cost_from_new:
+                self._tree[near_node] = NodeInfo(new_node, cost_from_new)
+
+        return new_node
+    
+    def visualize_tree(self):
+        plt.plot(self._start_node[1], self._start_node[0], "r-*", markersize=10)
+        plt.plot(self._last_node[1], self._last_node[0], "g-*", markersize=10)
+        for node, node_info in self._tree.items():
+            plt.arrow(
+                node_info.parent[1],
+                node_info.parent[0],
+                node[1] - node_info.parent[1],
+                node[0] - node_info.parent[0],
+                shape="full",
+                width=0.5,
+            )
