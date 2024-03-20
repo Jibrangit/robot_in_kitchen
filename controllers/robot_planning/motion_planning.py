@@ -5,6 +5,7 @@ from heapq import heapify, heappush, heappop
 import matplotlib.pyplot as plt
 from collections import deque
 import time
+from skimage.draw import line_nd
 
 
 def get_diagonal_neighbors(map: np.array, idx: t.Tuple) -> t.List:
@@ -114,7 +115,7 @@ def astar_weighted_graph(
         curr_node = curr[1]
 
         if plot:
-            plt.plot(curr_node[1], curr_node[0], 'y-*')
+            plt.plot(curr_node[1], curr_node[0], "y-*")
             plt.pause(0.000001)
 
         if curr_node == goal:
@@ -278,15 +279,31 @@ def astar(map: np.array, start: t.Tuple, goal: t.Tuple) -> t.List[t.Tuple]:
     print("Path to goal could not be found!!")
     return []
 
+
+def is_path_open(map, start, end):
+    if map[int(end[0]), int(end[1])]:  # End cell is occupied
+        return False
+
+    (xs, ys) = line_nd(start, end, integer=True)
+
+    for x, y in zip(xs, ys):
+        if map[x, y]:
+            return False
+
+    return True
+
+
 class RRT:
-    def __init__(self, start_node: tuple, goal_bias = 0.1):
+    def __init__(self, map: np.array, start_node: tuple, goal_bias=0.1):
         self._start_node = start_node
-        self._tree = {self._start_node: []}
-        self._iterations = 1000
-        self._delta_q = 5
+        self._tree = {self._start_node: []} # Each node is in the list is (x, y, Distance from parent node to node)
+        self._iterations = 4000
+        self._delta_q = 7
         self._last_node = None
         self._goal_bias = goal_bias
-        self._map_length = 300
+        self._map = map
+        self._map_width = len(map)
+        self._map_height = len(map[0])
 
     def _add_node_to_tree(self, rand_node: tuple, plot=False):
         nearest_node = None
@@ -310,6 +327,9 @@ class RRT:
             nearest_node[0] + ((rand_node[0] - nearest_node[0]) * step),
             nearest_node[1] + ((rand_node[1] - nearest_node[1]) * step),
         )
+
+        if not is_path_open(self._map, nearest_node, new_node):
+            return None
 
         if plot:
             plt.plot(self._start_node[1], self._start_node[0], "r-*", markersize=10)
@@ -335,14 +355,15 @@ class RRT:
         for k in range(self._iterations):
 
             rand_node = (
-                np.random.random_sample() * self._map_length,
-                np.random.random_sample() * self._map_length,
+                np.random.random_sample() * self._map_width,
+                np.random.random_sample() * self._map_height,
             )
             if np.random.rand() < self._goal_bias:
                 rand_node = self._goal
 
             new_node = self._add_node_to_tree(rand_node, plot)
-            if (
+
+            if new_node and (
                 np.sqrt(
                     (new_node[0] - self._goal[0]) ** 2
                     + (new_node[1] - self._goal[1]) ** 2
@@ -377,5 +398,3 @@ class RRT:
         plt.plot(self._start_node[1], self._start_node[0], "r-*", markersize=10)
         plt.plot(self._last_node[1], self._last_node[0], "g-*", markersize=10)
         self._plot_node(self._start_node)
-
-

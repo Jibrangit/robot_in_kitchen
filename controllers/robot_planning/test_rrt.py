@@ -10,7 +10,7 @@ if __name__ == "__main__":
     qstart = (50, 70)
     qgoal = (180, 180)
 
-    rrt = RRT(qstart, goal_bias=0.05)
+    rrt = RRT(map, qstart, goal_bias=0.01)
     rrt.build_tree(qgoal, plot=False)
     graph = rrt.get_tree()
     goal_node = rrt.get_goal_node()
