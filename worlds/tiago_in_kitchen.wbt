@@ -47,7 +47,7 @@ WorldInfo {
 Viewpoint {
   fieldOfView 1.1
   orientation -0.5326753054048807 0.4042270628096895 0.7435438794745529 2.1141664981894954
-  position 0.9060400261317656 -5.227229395577117 13.277580967307566
+  position 1.2198004389174442 -6.349953460485072 16.708951499132482
   exposure 0.7999999999999999
 }
 TexturedBackground {
@@ -830,11 +830,6 @@ Robot {
   children [
     Display {
       name "map_display"
-      width 300
-      height 300
-    }
-    Display {
-      name "cspace_display"
       width 300
       height 300
     }

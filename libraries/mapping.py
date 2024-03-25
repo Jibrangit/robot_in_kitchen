@@ -1,6 +1,11 @@
+import sys
+import os
+
+sys.path.append(os.getenv("HOME") + "/webots/robot_planning")
+
 import numpy as np
 from dataclasses import dataclass
-from bresenham import plot_line
+from libraries.bresenham import plot_line
 import numpy as np
 from enum import Enum
 from copy import deepcopy
@@ -10,35 +15,56 @@ import matplotlib.pyplot as plt
 import math
 import pandas as pd
 import time
+import yaml
 
 
-@dataclass
 class MappingParams:
-    map_length: int
-    arena_width: int
-    arena_length: int
-    top_left_x: float
-    top_left_y: float
-    occupancy_grid_threshold: float
-    kernel_size: float
+    def __init__(self, filepath) -> None:
+
+        with open(filepath, "r") as mapping_params_file:
+            try:
+                mapping_params = yaml.safe_load(mapping_params_file)
+
+                self.map_width = mapping_params["map_width"]
+                self.map_height = mapping_params["map_height"]
+                self.arena_width = mapping_params["arena_width"]
+                self.arena_length = mapping_params["arena_length"]
+                self.top_left_x = mapping_params["top_left_x"]
+                self.top_left_y = mapping_params["top_left_y"]
+                self.occupancy_grid_threshold = mapping_params[
+                    "occupancy_grid_threshold"
+                ]
+                self.kernel_size = mapping_params["kernel_size"]
+
+            except yaml.YAMLError as exc:
+                print(exc)
 
 
-@dataclass
 class RangeFinderParams:
-    num_readings: int
-    zero_angle: float
-    final_angle: float
-    actual_num_readings: int
-    first_idx: int
-    last_idx: int
-    x_offset: float
+    def __init__(self, filepath) -> None:
+
+        with open(filepath, "r") as range_finder_params_file:
+            try:
+                range_finder_params = yaml.safe_load(range_finder_params_file)
+
+                self.num_readings = range_finder_params["num_readings"]
+                self.zero_angle = range_finder_params["zero_angle"]
+                self.final_angle = range_finder_params["final_angle"]
+                self.actual_num_readings = range_finder_params["actual_num_readings"]
+                self.first_idx = range_finder_params["first_idx"]
+                self.last_idx = range_finder_params["last_idx"]
+                self.x_offset = range_finder_params["x_offset"]
+
+            except yaml.YAMLError as exc:
+                print(exc)
 
 
 class Mapper:
-    def __init__(self, mapping_params: MappingParams):
-        self._mapping_params = mapping_params
+    def __init__(self, mapping_params_filepath):
+        self._mapping_params = MappingParams(mapping_params_filepath)
         self._map = np.zeros(
-            (mapping_params.map_length, mapping_params.map_length), dtype=float
+            (self._mapping_params.map_width, self._mapping_params.map_height),
+            dtype=float,
         )
         self._pose = (0, 0)
 
@@ -46,27 +72,27 @@ class Mapper:
         self._pose = (x, y)
         px = np.round(
             ((x - self._mapping_params.top_left_x) / self._mapping_params.arena_width)
-            * self._mapping_params.map_length
+            * self._mapping_params.map_width
         )
         py = np.round(
             ((self._mapping_params.top_left_y - y) / self._mapping_params.arena_length)
-            * self._mapping_params.map_length
+            * self._mapping_params.map_height
         )
 
         return int(px), int(py)
 
     def _is_index_in_bounds(self, px, py):
         return (
-            0 <= px < self._mapping_params.map_length
-            and 0 <= py < self._mapping_params.map_length
+            0 <= px < self._mapping_params.map_width
+            and 0 <= py < self._mapping_params.map_height
         )
 
     def map2world(self, px, py) -> Tuple[float]:
         x = (
-            (px / self._mapping_params.map_length) * self._mapping_params.arena_width
+            (px / self._mapping_params.map_width) * self._mapping_params.arena_width
         ) + self._mapping_params.top_left_x
         y = self._mapping_params.top_left_y - (
-            (py / self._mapping_params.map_length) * self._mapping_params.arena_length
+            (py / self._mapping_params.map_height) * self._mapping_params.arena_length
         )
         return x, y
 
@@ -82,8 +108,8 @@ class Mapper:
 
     def display_map(self, display):
         # Draw configuration map
-        for row in np.arange(0, self._mapping_params.map_length):
-            for col in np.arange(0, self._mapping_params.map_length):
+        for row in np.arange(0, self._mapping_params.map_width):
+            for col in np.arange(0, self._mapping_params.map_height):
                 v = min(int((self._map[row, col]) * 255), 255)
                 if v > 0.01:
                     display.setColor(v * 256**2 + v * 256 + v)
@@ -94,7 +120,7 @@ class Mapper:
         plt.show()
 
     def save_cspace(self, cspace):
-        np.save("cspace", cspace)
+        np.save("maps/kitchen_cspace", cspace)
 
     def get_map(self):
         return self._map
@@ -104,12 +130,12 @@ class RangeFinderMapper(Mapper):
     def __init__(
         self,
         lidar,
-        mapping_params: MappingParams,
-        range_finder_params: RangeFinderParams,
+        mapping_params_filepath: str,
+        range_finder_params_filepath: str,
     ):
-        super().__init__(mapping_params)
+        super().__init__(mapping_params_filepath)
         self._lidar = lidar
-        self._lidar_params = range_finder_params
+        self._lidar_params = RangeFinderParams(range_finder_params_filepath)
 
         self._angles = np.linspace(
             self._lidar_params.zero_angle,

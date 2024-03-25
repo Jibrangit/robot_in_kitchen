@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-from motion_planning import get_weighted_graph_from_map, astar_weighted_graph
+from libraries.motion_planning import get_weighted_graph_from_map, astar_weighted_graph
 
 if __name__ == "__main__":
     map = np.load("cspace.npy")

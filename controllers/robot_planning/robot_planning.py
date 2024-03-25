@@ -1,7 +1,13 @@
 """week5_jibran controller."""
 
-from controller import Robot, Supervisor, Motor, PositionSensor
 import sys
+import os
+
+root_dir = os.getenv("HOME") + "/webots/robot_planning"
+sys.path.append(root_dir)
+
+
+from controller import Robot, Supervisor, Motor, PositionSensor
 from pathlib import Path
 import numpy as np
 from enum import Enum
@@ -14,26 +20,13 @@ import pandas as pd
 import time
 
 
-from bresenham import plot_line
-from robot_controller import Controller
-from motion_planning import astar
-from mapping import RangeFinderMapper, MappingParams, RangeFinderParams
+from libraries.bresenham import plot_line
+from libraries.robot_controller import Controller
+from libraries.motion_planning import astar
+from libraries.mapping import RangeFinderMapper, MappingParams, RangeFinderParams
 
-
-LIDAR_NUM_READINGS = 667
-LIDAR_ACTUAL_NUM_READINGS = 530
-LIDAR_FIRST_READING_INDEX = 57
-LIDAR_LAST_READING_INDEX = -80
-TOP_LEFT_X = -2.5
-TOP_LEFT_Y = 1.8
-ARENA_WIDTH = 4.7
-ARENA_LENGTH = 5.9
-LIDAR_ROBOT_X_OFFSET = 0.202
 BALL_DIAMETER = 0.0399
 WHEEL_MAX_SPEED_RADPS = 10.15
-OCCUPANCY_GRID_THRESHOLD = 0.3
-MAP_LENGTH = 300
-KERNEL_SIZE = 43
 
 
 class RobotState(Enum):
@@ -85,29 +78,12 @@ def main():
 
     mapper = RangeFinderMapper(
         robot.getDevice("Hokuyo URG-04LX-UG01"),
-        mapping_params=MappingParams(
-            MAP_LENGTH,
-            ARENA_WIDTH,
-            ARENA_LENGTH,
-            TOP_LEFT_X,
-            TOP_LEFT_Y,
-            OCCUPANCY_GRID_THRESHOLD,
-            KERNEL_SIZE,
-        ),
-        range_finder_params=RangeFinderParams(
-            LIDAR_NUM_READINGS,
-            2 * np.pi / 3,
-            -2 * np.pi / 3,
-            LIDAR_ACTUAL_NUM_READINGS,
-            LIDAR_FIRST_READING_INDEX,
-            LIDAR_LAST_READING_INDEX,
-            LIDAR_ROBOT_X_OFFSET,
-        ),
+        mapping_params_filepath="config/mapping_params.yaml",
+        range_finder_params_filepath="config/range_finder_params.yaml",
     )
     mapper.enable_lidar(timestep)
 
     map_display = robot.getDevice("map_display")
-    cspace_display = robot.getDevice("cspace_display")
 
     home_position = None
     goal_position = (-1.65, 0.0)
@@ -182,7 +158,7 @@ def main():
                 robot_comms.set_motors_vels(vl, vr)
 
         if robot_state == RobotState.PLANNING:
-            cspace = np.load("cspace.npy")
+            cspace = np.load("maps/kitchen_cspace.npy")
             p_start = mapper.world2map(home_position[0], home_position[1])
             p_goal = mapper.world2map(goal_position[0], goal_position[1])
 

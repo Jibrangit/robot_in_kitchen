@@ -17,6 +17,9 @@ class Controller:
         self._wheel_max_speed_radps = wheel_max_speed
 
     def compute_errors(self, pose) -> Tuple[float]:
+        '''
+            pose : SE2 ; x, y, theta in world coordinates
+        '''
         xw = pose[0]
         yw = pose[1]
         theta = pose[2]
@@ -34,6 +37,9 @@ class Controller:
         return rho, alpha
 
     def get_input_vels(self, pose) -> Tuple[float]:
+        '''
+            pose : SE2 ; x, y, theta in world coordinates
+        '''
 
         rho, alpha = self.compute_errors(pose)
 
@@ -67,6 +73,9 @@ class Controller:
         return vl, vr
     
     def completed(self) -> bool:
+        '''
+            Controller has traversed all the waypoints provided to it. 
+        '''
         if self._index >= len(self._waypoints):
             return True
         else:

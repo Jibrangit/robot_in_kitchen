@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from motion_planning import RRT_star, astar_weighted_graph
+from libraries.motion_planning import RRT_star, astar_weighted_graph
 
 if __name__ == "__main__":
     np.random.seed(14)
