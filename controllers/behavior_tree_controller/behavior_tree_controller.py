@@ -28,18 +28,70 @@ WHEEL_MAX_SPEED_RADPS = 10.15
 BALL_DIAMETER = 0.0399
 
 
-class GoAroundTableAndMap(py_trees.behaviour.Behaviour):
+class NavigateThroughPoints(py_trees.behaviour.Behaviour):
+    """
+    Navigate through waypoints using a simple reactive controller that minimizes translational and rotational error.
+    """
+
+    def __init__(self, waypoints: list, name: str = "NavigateThroughPoints"):
+        super(NavigateThroughPoints, self).__init__(name)
+        self.logger.info("%s.__init__()" % (self.__class__.__name__))
+
+        self._waypoints = waypoints
+
+        self._blackboard_reader = self.attach_blackboard_client()
+        self._blackboard_reader.register_key(
+            key="timestep", access=py_trees.common.Access.READ
+        )
+        self._blackboard_reader.register_key(
+            key="robot_comms", access=py_trees.common.Access.READ
+        )
+        self._blackboard_reader.register_key(
+            key="marker", access=py_trees.common.Access.READ
+        )
+
+    def setup(self, **kwargs: int) -> None:
+
+        self.logger.info("%s.setup()" % (self.__class__.__name__))
+
+        self._timestep = self._blackboard_reader.timestep
+        self._robot_comms = self._blackboard_reader.robot_comms
+        self._marker = self._blackboard_reader.marker
+        self._controller = Controller(WHEEL_MAX_SPEED_RADPS, self._waypoints)
+
+    def update(self) -> py_trees.common.Status:
+        """Run the controllers, if controllers have reached all their predefined waypoints, return success."""
+
+        self.logger.info("%s.update()" % (self.name))
+
+        xw, yw, theta = self._robot_comms.get_se2_pose()
+
+        if self._controller.completed():
+            self.logger.info(f"Successfully navigated through waypoints for behavior {self.name}")
+            return py_trees.common.Status.SUCCESS
+
+        else:
+            self._marker.setSFVec3f(
+                [
+                    *self._controller.get_current_target(),
+                    BALL_DIAMETER,
+                ]
+            )
+
+            # Drive the robot
+            vl, vr = self._controller.get_input_vels((xw, yw, theta))
+            self._robot_comms.set_motors_vels(vl, vr)
+            return py_trees.common.Status.RUNNING
+
+
+class MapWithRangeFinder(py_trees.behaviour.Behaviour):
     """
     Make the robot go around a predefined list of waypoints and map the environment while its moving.
     """
 
-    def __init__(self, name: str = "GoAroundTableAndMap"):
-        super(GoAroundTableAndMap, self).__init__(name)
-        self.logger.debug("%s.__init__()" % (self.__class__.__name__))
-
-        self._home_position = None
-        self._clockwise_waypoints = None
-        self._counter_clockwise_waypoints = None
+    def __init__(self, name: str = "MapWithRangeFinder"):
+        super(MapWithRangeFinder, self).__init__(name)
+        self.logger.info("%s.__init__()" % (self.__class__.__name__))
 
         self._blackboard_reader = self.attach_blackboard_client()
         self._blackboard_reader.register_key(
@@ -59,8 +111,7 @@ class GoAroundTableAndMap(py_trees.behaviour.Behaviour):
         )
 
     def setup(self, **kwargs: int) -> None:
-        """Setup the following :
-        - Communication to the robot's sensors and motors.
+        """
         - Set up the mapper.
         - Set up the map display.
         """
@@ -80,77 +131,22 @@ class GoAroundTableAndMap(py_trees.behaviour.Behaviour):
         )
         self._mapper.enable_lidar(self._timestep)
 
-        self._mapping_controllers = None
-        self._mapping_controller_idx = 0
-
-    def initialise(self) -> None:
-        """Initialize the controllers with the waypoints after getting the robot's start position"""
-
-        xw, yw, theta = self._robot_comms.get_se2_pose()
-
-        if self._home_position == None:
-            self._home_position = (xw, yw)
-            self._clockwise_waypoints = [
-                self._home_position,
-                (-1.6, -3.2),
-                (-1.65, 0.35),
-                (0.65, 0.35),
-                (0.67, -1.65),
-                (0.56, -3.3),
-            ]
-            self._counter_clockwise_waypoints = deepcopy(self._clockwise_waypoints)
-            self._counter_clockwise_waypoints.reverse()
-            self._counter_clockwise_waypoints.append(self._home_position)
-            self._mapping_controllers = [
-                Controller(WHEEL_MAX_SPEED_RADPS, self._clockwise_waypoints),
-                Controller(WHEEL_MAX_SPEED_RADPS, self._counter_clockwise_waypoints),
-            ]
-            self.logger.debug("Robot is now in mapping mode...")
-
     def update(self) -> py_trees.common.Status:
-        """Run the controllers and map the environment, if all controllers have executed, return success."""
 
         xw, yw, theta = self._robot_comms.get_se2_pose()
-
-        if self._mapping_controller_idx >= len(self._mapping_controllers):
-            self._robot_comms.set_motors_vels(0, 0)
-
-            cspace = self._mapper.compute_cspace()
-            self._mapper.save_cspace(cspace)
-
-            return py_trees.common.Status.SUCCESS
-
-        elif self._mapping_controllers[self._mapping_controller_idx].completed():
-            self._mapping_controller_idx += 1
-            return py_trees.common.Status.RUNNING
-
-        else:
-            self._marker.setSFVec3f(
-                [
-                    *self._mapping_controllers[
-                        self._mapping_controller_idx
-                    ].get_current_target(),
-                    BALL_DIAMETER,
-                ]
-            )
-
-            # Map the environment
-            self._mapper.generate_map((xw, yw, theta))
-            self._mapper.display_map(self._map_display)
-
-            # Drive the robot
-            vl, vr = self._mapping_controllers[
-                self._mapping_controller_idx
-            ].get_input_vels((xw, yw, theta))
-            self._robot_comms.set_motors_vels(vl, vr)
-            return py_trees.common.Status.RUNNING
+        self._mapper.generate_map((xw, yw, theta))
+        self._mapper.display_map(self._map_display)
+        self.logger.info(f"{self.name}.update(), Map generating....")
+        return py_trees.common.Status.RUNNING
 
     def terminate(self, new_status: py_trees.common.Status) -> None:
-        """Stop the robot"""
-
-        self._robot_comms.set_motors_vels(0, 0)
-        self.logger.debug(
-            "%s.terminate()[%s->%s]"
+        """
+        Save the cspace from the map generated so far.
+        """
+        cspace = self._mapper.compute_cspace()
+        self._mapper.save_cspace(cspace)
+        self.logger.info(
+            "%s.terminate()[%s->%s], Cspace saved."
             % (self.__class__.__name__, self.status, new_status)
         )
 
@@ -158,14 +154,11 @@ class GoAroundTableAndMap(py_trees.behaviour.Behaviour):
 class IsCspaceAvailable(py_trees.behaviour.Behaviour):
     def __init__(self, name: str = "IsCspaceAvailable"):
         super(IsCspaceAvailable, self).__init__(name)
-        self.logger.debug("%s.__init__()" % (self.__class__.__name__))
-
-    def setup(self, **kwargs: int) -> None:
-        """Nothing to setup here."""
-        pass
+        self.logger.info("%s.__init__()" % (self.__class__.__name__))
 
     def initialise(self) -> None:
-        """Nothing to initialise here."""
+        self.logger.info("%s.initialise()" % (self.__class__.__name__))
+        return super().initialise()
 
     def update(self) -> py_trees.common.Status:
         try:
@@ -176,7 +169,7 @@ class IsCspaceAvailable(py_trees.behaviour.Behaviour):
 
     def terminate(self, new_status: py_trees.common.Status) -> None:
         """Nothing to cleanup here"""
-        self.logger.debug(
+        self.logger.info(
             "%s.terminate()[%s->%s]"
             % (self.__class__.__name__, self.status, new_status)
         )
@@ -213,7 +206,7 @@ class BlackboardWriter(py_trees.behaviour.Behaviour):
         self.blackboard.set(name="marker", value=kwargs["marker"])
 
         self.logger.info(
-            f'Successfully written all variables to blackboarg including the timestep = {kwargs["timestep"]}'
+            f'Successfully written all variables to blackboard including the timestep = {kwargs["timestep"]}'
         )
 
     def setup(self, **kwargs) -> None:
@@ -226,11 +219,41 @@ class BlackboardWriter(py_trees.behaviour.Behaviour):
 def create_tree(**kwargs) -> py_trees.behaviour.Behaviour:
 
     write_blackboard_variable = BlackboardWriter(name="Writer", **kwargs)
-    get_map = py_trees.composites.Selector(name="Selector", memory=True)
-    get_map.add_child(IsCspaceAvailable())
-    get_map.add_child(GoAroundTableAndMap())
 
-    root = py_trees.composites.Sequence(name="Root behavior", memory=True)
+    home_position = (0.4, -3.1)
+    clockwise_waypoints = [
+        (-1.6, -3.2),
+        (-1.65, 0.35),
+        (0.65, 0.35),
+        (0.67, -1.65),
+        (0.56, -3.3),
+    ]
+    counter_clockwise_waypoints = deepcopy(clockwise_waypoints)
+    counter_clockwise_waypoints.reverse()
+    counter_clockwise_waypoints.append(home_position)
+
+    clockwise_navigation = NavigateThroughPoints(
+        waypoints=clockwise_waypoints, name="ClockwiseAroundTable"
+    )
+    counter_clockwise_navigation = NavigateThroughPoints(
+        waypoints=counter_clockwise_waypoints, name="CounterClockwiseAroundTable"
+    )
+    navigation = py_trees.composites.Sequence(
+        name="MoveAroundTable",
+        memory=True,
+        children=[clockwise_navigation, counter_clockwise_navigation],
+    )
+
+    generate_map = py_trees.composites.Parallel(
+        name="GenerateMap", policy=py_trees.common.ParallelPolicy.SuccessOnOne()
+    )
+
+    generate_map.add_children([navigation, MapWithRangeFinder()])
+
+    get_map = py_trees.composites.Selector(
+        name="GetMap", memory=True, children=[IsCspaceAvailable(), generate_map]
+    )
+    root = py_trees.composites.Sequence(name="Root behavior", memory=False)
     root.add_children([write_blackboard_variable, get_map])
     return root
 
@@ -255,6 +278,7 @@ def main():
         marker=marker,
     )
 
+    py_trees.display.render_dot_tree(root)
     root.setup_with_descendants()
     root.initialise()
 
