@@ -3,7 +3,7 @@ ordering=out;
 graph [fontname="times-roman"];
 node [fontname="times-roman"];
 edge [fontname="times-roman"];
-"Root behavior" [fillcolor=orange, fontcolor=black, fontsize=9, label="Root behavior", shape=box, style=filled];
+"Root behavior" [fillcolor=orange, fontcolor=black, fontsize=9, label="Ⓜ Root behavior", shape=box, style=filled];
 Writer [fillcolor=gray, fontcolor=black, fontsize=9, label=Writer, shape=ellipse, style=filled];
 "Root behavior" -> Writer;
 GetMap [fillcolor=cyan, fontcolor=black, fontsize=9, label="Ⓜ GetMap", shape=octagon, style=filled];
@@ -20,4 +20,12 @@ CounterClockwiseAroundTable [fillcolor=gray, fontcolor=black, fontsize=9, label=
 MoveAroundTable -> CounterClockwiseAroundTable;
 MapWithRangeFinder [fillcolor=gray, fontcolor=black, fontsize=9, label=MapWithRangeFinder, shape=ellipse, style=filled];
 GenerateMap -> MapWithRangeFinder;
+ComputePathToLowerLeft [fillcolor=gray, fontcolor=black, fontsize=9, label=ComputePathToLowerLeft, shape=ellipse, style=filled];
+"Root behavior" -> ComputePathToLowerLeft;
+NavigateToLowerLeft [fillcolor=gray, fontcolor=black, fontsize=9, label=NavigateToLowerLeft, shape=ellipse, style=filled];
+"Root behavior" -> NavigateToLowerLeft;
+ComputePathToSink [fillcolor=gray, fontcolor=black, fontsize=9, label=ComputePathToSink, shape=ellipse, style=filled];
+"Root behavior" -> ComputePathToSink;
+NavigateToSink [fillcolor=gray, fontcolor=black, fontsize=9, label=NavigateToSink, shape=ellipse, style=filled];
+"Root behavior" -> NavigateToSink;
 }
