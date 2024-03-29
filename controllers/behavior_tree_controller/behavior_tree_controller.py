@@ -13,12 +13,12 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import py_trees
 
-from controller import Supervisor 
+from controller import Supervisor
 from libraries.robot_device_io import RobotDeviceIO
 
-from mapping_behaviors import MapWithRangeFinder, IsCspaceAvailable
-from planning_behaviors import GeneratePath
-from navigation_behaviors import NavigateThroughPoints
+from behaviors.mapping_behaviors import MapWithRangeFinder, IsCspaceAvailable
+from behaviors.planning_behaviors import GeneratePath
+from behaviors.navigation_behaviors import NavigateThroughPoints
 
 
 class BlackboardWriter(py_trees.behaviour.Behaviour):
@@ -32,15 +32,22 @@ class BlackboardWriter(py_trees.behaviour.Behaviour):
         self.blackboard.register_key(
             key="timestep", access=py_trees.common.Access.WRITE
         )
+
+        # Provides access to the robot's pose (x, y, theta) as well as
+        # write-access to set the motor velocities.
         self.blackboard.register_key(
             key="robot_comms", access=py_trees.common.Access.WRITE
         )
+
+        # Provides access to the range-finder device that allows the mapping behaviors to read off the range-finder.
         self.blackboard.register_key(
             key="range_finder", access=py_trees.common.Access.WRITE
         )
         self.blackboard.register_key(
             key="map_display", access=py_trees.common.Access.WRITE
         )
+
+        # Used to access the marker (ping pong ball) and set its position to the latest target for visualization.
         self.blackboard.register_key(key="marker", access=py_trees.common.Access.WRITE)
 
         self.logger.debug("%s.__init__()" % (self.__class__.__name__))
@@ -64,7 +71,7 @@ class BlackboardWriter(py_trees.behaviour.Behaviour):
 
 def create_tree(**kwargs) -> py_trees.behaviour.Behaviour:
 
-    write_blackboard_variable = BlackboardWriter(name="Writer", **kwargs)
+    # Waypoints that provide obstacle-free trajectories in the known environment are used for mapping.
     home_position = (0.4, -3.1)
     clockwise_waypoints = [
         (-1.6, -3.2),
@@ -79,6 +86,9 @@ def create_tree(**kwargs) -> py_trees.behaviour.Behaviour:
     counter_clockwise_waypoints = deepcopy(clockwise_waypoints)
     counter_clockwise_waypoints.reverse()
     counter_clockwise_waypoints.append(home_position)
+
+    ####################### BEHAVIOR TREE CONSTRUCTION #########################
+    write_blackboard_variable = BlackboardWriter(name="Writer", **kwargs)
 
     clockwise_navigation = NavigateThroughPoints(
         waypoints=clockwise_waypoints, name="ClockwiseAroundTable"
@@ -96,16 +106,26 @@ def create_tree(**kwargs) -> py_trees.behaviour.Behaviour:
         name="GenerateMap", policy=py_trees.common.ParallelPolicy.SuccessOnOne()
     )
 
+    # MapWithRangeFinder behavior never returns SUCCESS, so its the navigation behavior
+    # that has to return SUCCESS for the Parallel node "generate_map" to succeed.
     generate_map.add_children([navigation, MapWithRangeFinder()])
 
+    # IsCspaceAvailable checks for the Cspace (map) availability and has higher priority over map generation.
     get_map = py_trees.composites.Selector(
         name="GetMap", memory=True, children=[IsCspaceAvailable(), generate_map]
     )
 
+    # No start position is provided, the start position is retrieved from
+    # the robot directly by reading of the robot_comms object stored in the blackboard.
     compute_path_to_lower_left = GeneratePath(
         goal_position=lower_left_position,
         name="ComputePathToLowerLeft",
     )
+
+    # No waypoints are provided to this navigation behavior upon construction.
+    # Rather the path planning behavior executed before this writes the plan to the blackboard.
+    # The navigation behaviors read the latest plan from the blackboard when no waypoints
+    # are provided upon constructing the behavior object.
     navigate_to_lower_left = NavigateThroughPoints(
         waypoints=None, name="NavigateToLowerLeft"
     )

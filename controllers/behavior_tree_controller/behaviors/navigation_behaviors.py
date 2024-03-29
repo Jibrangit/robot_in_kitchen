@@ -54,7 +54,7 @@ class NavigateThroughPoints(py_trees.behaviour.Behaviour):
     def update(self) -> py_trees.common.Status:
         """Run the controllers, if controllers have reached all their predefined waypoints, return success."""
 
-        self.logger.info("%s.update()" % (self.name))
+        self.logger.debug("%s.update()" % (self.name))
 
         xw, yw, theta = self._robot_comms.get_se2_pose()
 

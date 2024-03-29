@@ -55,7 +55,7 @@ class MapWithRangeFinder(py_trees.behaviour.Behaviour):
         xw, yw, theta = self._robot_comms.get_se2_pose()
         self._mapper.generate_map((xw, yw, theta))
         self._mapper.display_map(self._map_display)
-        self.logger.info(f"{self.name}.update(), Map generating....")
+        self.logger.debug(f"{self.name}.update(), Map generating....")
         return py_trees.common.Status.RUNNING
 
     def terminate(self, new_status: py_trees.common.Status) -> None:
