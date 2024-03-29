@@ -36,6 +36,21 @@ class RobotDeviceIO:
             "head_2_joint_sensor",
         ]
 
+        self._sensor_to_joint_name = {
+            "torso_lift_joint_sensor": "torso_lift_joint",
+            "arm_1_joint_sensor": "arm_1_joint",
+            "arm_2_joint_sensor": "arm_2_joint",
+            "arm_3_joint_sensor": "arm_3_joint",
+            "arm_4_joint_sensor": "arm_4_joint",
+            "arm_5_joint_sensor": "arm_5_joint",
+            "arm_6_joint_sensor": "arm_6_joint",
+            "arm_7_joint_sensor": "arm_7_joint",
+            "gripper_left_sensor_finger_joint": "gripper_left_finger_joint",
+            "gripper_right_sensor_finger_joint": "gripper_right_finger_joint",
+            "head_1_joint_sensor": "head_1_joint",
+            "head_2_joint_sensor": "head_2_joint",
+        }
+
     def _initialize_robot_joints(self, timestep):
         self._robot_joint_handles = {}
         for joint in self._robot_joints.keys():
@@ -55,10 +70,14 @@ class RobotDeviceIO:
     def get_joint_positions(self):
         joint_positions = {}
         for joint_sensor, joint_sensor_val in self._robot_joint_sensor_handles.items():
-            joint_positions[joint_sensor] = self._robot_joint_sensor_handles[
-                joint_sensor
-            ].getValue()
+            joint_positions[self._sensor_to_joint_name[joint_sensor]] = (
+                self._robot_joint_sensor_handles[joint_sensor].getValue()
+            )
         return joint_positions
+
+    def set_joint_positions(self, joint_positions: dict):
+        for joint_name, joint_position in joint_positions.items():
+            self._robot_joint_handles[joint_name].setPosition(joint_position)
 
     def initialize_devices(self, timestep) -> None:
 
@@ -70,8 +89,8 @@ class RobotDeviceIO:
         self._leftMotor.setVelocity(0)
         self._rightMotor.setVelocity(0)
 
-        self._leftEncoder = self._robot.getDevice('wheel_left_joint_sensor')
-        self._rightEncoder = self._robot.getDevice('wheel_right_joint_sensor')
+        self._leftEncoder = self._robot.getDevice("wheel_left_joint_sensor")
+        self._rightEncoder = self._robot.getDevice("wheel_right_joint_sensor")
         self._leftEncoder.enable(timestep)
         self._rightEncoder.enable(timestep)
 

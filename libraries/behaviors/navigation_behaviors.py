@@ -1,7 +1,7 @@
 import py_trees 
 from typing import Union 
 
-from libraries.robot_controller import Controller
+from robot_controller import Controller
 
 
 WHEEL_MAX_SPEED_RADPS = 10.15

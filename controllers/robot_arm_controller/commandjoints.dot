@@ -1,0 +1,11 @@
+digraph pastafarianism {
+ordering=out;
+graph [fontname="times-roman"];
+node [fontname="times-roman"];
+edge [fontname="times-roman"];
+CommandJoints [fillcolor=orange, fontcolor=black, fontsize=9, label="Ⓜ CommandJoints", shape=box, style=filled];
+Writer [fillcolor=gray, fontcolor=black, fontsize=9, label=Writer, shape=ellipse, style=filled];
+CommandJoints -> Writer;
+CommandJointPositions [fillcolor=gray, fontcolor=black, fontsize=9, label=CommandJointPositions, shape=ellipse, style=filled];
+CommandJoints -> CommandJointPositions;
+}
