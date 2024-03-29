@@ -20,7 +20,6 @@ import pandas as pd
 import time
 
 
-from libraries.bresenham import plot_line
 from libraries.robot_controller import Controller
 from libraries.motion_planning import astar
 from libraries.mapping import RangeFinderMapper, MappingParams, RangeFinderParams
@@ -46,6 +45,7 @@ def main():
 
     while robot.step(timestep) != -1:
         xw, yw, theta = robot_comms.get_se2_pose()
+        robot_comms.joints_to_home_positions()
 
 
 if __name__ == "__main__":

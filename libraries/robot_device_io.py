@@ -1,11 +1,64 @@
-import numpy as np 
+import numpy as np
 from typing import Union
 from controller import Robot, Supervisor, Motor, PositionSensor
 
 
 class RobotDeviceIO:
-    def __init__(self, robot : Union[Robot, Supervisor]):
+    def __init__(self, robot: Union[Robot, Supervisor]):
         self._robot = robot
+        self._robot_joints = {
+            "torso_lift_joint": 0.35,
+            "arm_1_joint": 0.71,
+            "arm_2_joint": 1.02,
+            "arm_3_joint": -2.815,
+            "arm_4_joint": 1.011,
+            "arm_5_joint": 0,
+            "arm_6_joint": 0,
+            "arm_7_joint": 0,
+            "gripper_left_finger_joint": 0,
+            "gripper_right_finger_joint": 0,
+            "head_1_joint": 0,
+            "head_2_joint": 0,
+        }  # Robot joint keys and safe values.
+
+        self._robot_joint_sensors = [
+            "torso_lift_joint_sensor",
+            "arm_1_joint_sensor",
+            "arm_2_joint_sensor",
+            "arm_3_joint_sensor",
+            "arm_4_joint_sensor",
+            "arm_5_joint_sensor",
+            "arm_6_joint_sensor",
+            "arm_7_joint_sensor",
+            "gripper_left_sensor_finger_joint",
+            "gripper_right_sensor_finger_joint",
+            "head_1_joint_sensor",
+            "head_2_joint_sensor",
+        ]
+
+    def _initialize_robot_joints(self, timestep):
+        self._robot_joint_handles = {}
+        for joint in self._robot_joints.keys():
+            self._robot_joint_handles[joint] = self._robot.getDevice(joint)
+
+        self._robot_joint_sensor_handles = {}
+        for joint_sensor in self._robot_joint_sensors:
+            self._robot_joint_sensor_handles[joint_sensor] = self._robot.getDevice(
+                joint_sensor
+            )
+            self._robot_joint_sensor_handles[joint_sensor].enable(timestep)
+
+    def joints_to_home_positions(self):
+        for joint, joint_value in self._robot_joints.items():
+            self._robot_joint_handles[joint].setPosition(joint_value)
+
+    def get_joint_positions(self):
+        joint_positions = {}
+        for joint_sensor, joint_sensor_val in self._robot_joint_sensor_handles.items():
+            joint_positions[joint_sensor] = self._robot_joint_sensor_handles[
+                joint_sensor
+            ].getValue()
+        return joint_positions
 
     def initialize_devices(self, timestep) -> None:
 
@@ -14,16 +67,21 @@ class RobotDeviceIO:
         self._leftMotor.setPosition(float("inf"))
         self._rightMotor.setPosition(float("inf"))
 
-        # leftEncoder = robot.getDevice('wheel_left_joint_sensor')
-        # rightEncoder = robot.getDevice('wheel_right_joint_sensor')
-        # leftEncoder.enable(timestep)
-        # rightEncoder.enable(timestep)
+        self._leftMotor.setVelocity(0)
+        self._rightMotor.setVelocity(0)
+
+        self._leftEncoder = self._robot.getDevice('wheel_left_joint_sensor')
+        self._rightEncoder = self._robot.getDevice('wheel_right_joint_sensor')
+        self._leftEncoder.enable(timestep)
+        self._rightEncoder.enable(timestep)
 
         self._gps = self._robot.getDevice("gps")
         self._gps.enable(timestep)
 
         self._compass = self._robot.getDevice("compass")
         self._compass.enable(timestep)
+
+        self._initialize_robot_joints(timestep)
 
     def get_se2_pose(self) -> tuple[float]:
         xw = self._gps.getValues()[0]

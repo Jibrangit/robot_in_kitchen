@@ -20,10 +20,9 @@ import pandas as pd
 import time
 
 
-from libraries.bresenham import plot_line
 from libraries.robot_controller import Controller
 from libraries.motion_planning import astar
-from libraries.mapping import RangeFinderMapper, MappingParams, RangeFinderParams
+from libraries.mapping import RangeFinderMapper
 from libraries.robot_device_io import RobotDeviceIO
 
 BALL_DIAMETER = 0.0399
