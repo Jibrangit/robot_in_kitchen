@@ -5563,7 +5563,7 @@ Robot {
     density -1
     mass 28.26649
   }
-  controller "robot_planning"
+  controller "behavior_tree_controller"
   supervisor TRUE
 }
 DEF marker PingPongBall {

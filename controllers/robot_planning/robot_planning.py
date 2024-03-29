@@ -12,7 +12,7 @@ from pathlib import Path
 import numpy as np
 from enum import Enum
 from copy import deepcopy
-from typing import List, Tuple
+from typing import List, Tuple, Union
 from scipy import signal
 import matplotlib.pyplot as plt
 import math
@@ -24,6 +24,7 @@ from libraries.bresenham import plot_line
 from libraries.robot_controller import Controller
 from libraries.motion_planning import astar
 from libraries.mapping import RangeFinderMapper, MappingParams, RangeFinderParams
+from libraries.robot_device_io import RobotDeviceIO
 
 BALL_DIAMETER = 0.0399
 WHEEL_MAX_SPEED_RADPS = 10.15
@@ -36,38 +37,7 @@ class RobotState(Enum):
     NAVIGATION = 3
 
 
-class RobotDeviceIO:
-    def __init__(self, robot):
-        self._robot = robot
 
-    def initialize_devices(self, timestep) -> None:
-
-        self._leftMotor = self._robot.getDevice("wheel_left_joint")
-        self._rightMotor = self._robot.getDevice("wheel_right_joint")
-        self._leftMotor.setPosition(float("inf"))
-        self._rightMotor.setPosition(float("inf"))
-
-        # leftEncoder = robot.getDevice('wheel_left_joint_sensor')
-        # rightEncoder = robot.getDevice('wheel_right_joint_sensor')
-        # leftEncoder.enable(timestep)
-        # rightEncoder.enable(timestep)
-
-        self._gps = self._robot.getDevice("gps")
-        self._gps.enable(timestep)
-
-        self._compass = self._robot.getDevice("compass")
-        self._compass.enable(timestep)
-
-    def get_se2_pose(self) -> Tuple[float]:
-        xw = self._gps.getValues()[0]
-        yw = self._gps.getValues()[1]
-        theta = np.arctan2(self._compass.getValues()[0], self._compass.getValues()[1])
-
-        return xw, yw, theta
-
-    def set_motors_vels(self, vl, vr) -> None:
-        self._leftMotor.setVelocity(vl)
-        self._rightMotor.setVelocity(vr)
 
 
 def main():
