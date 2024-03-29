@@ -26,7 +26,8 @@ class GeneratePath(py_trees.behaviour.Behaviour):
 
         self._plan = None
 
-    def setup(self, **kwargs: int) -> None:
+    def initialise(self) -> None:
+        self.logger.info(f"Planning path for behavior {self.name}")
 
         self.logger.info("%s.setup()" % (self.name))
         try:
@@ -34,9 +35,6 @@ class GeneratePath(py_trees.behaviour.Behaviour):
 
         except OSError:
             self.logger.error("No Cspace available for path planning!")
-
-    def initialise(self) -> None:
-        self.logger.info(f"Planning path for behavior {self.name}")
 
         self._robot_comms = self._blackboard.robot_comms
         xw, yw, theta = self._robot_comms.get_se2_pose()
