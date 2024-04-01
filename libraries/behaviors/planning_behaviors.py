@@ -1,7 +1,7 @@
 import numpy as np
 import py_trees
-from mapping import Mapper
-from motion_planning import astar
+from libraries.mapping import Mapper
+from libraries.motion_planning import astar
 
 
 class GeneratePath(py_trees.behaviour.Behaviour):

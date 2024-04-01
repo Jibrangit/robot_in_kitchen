@@ -19,14 +19,15 @@ import math
 import pandas as pd
 import time
 import py_trees
+import yaml
 
 
 from libraries.robot_controller import Controller
-from libraries.motion_planning import astar
-from libraries.mapping import RangeFinderMapper, MappingParams, RangeFinderParams
 from libraries.robot_device_io import RobotDeviceIO
 from libraries.behaviors.robot_arm_behaviors import CommandJointPositions
 from libraries.behaviors.blackboard_writer import BlackboardWriter
+from libraries.behaviors.planning_behaviors import GeneratePath
+from libraries.behaviors.navigation_behaviors import NavigateThroughPoints, MoveLinearly
 
 BALL_DIAMETER = 0.0399
 WHEEL_MAX_SPEED_RADPS = 10.15
@@ -34,7 +35,7 @@ WHEEL_MAX_SPEED_RADPS = 10.15
 
 def create_tree(**kwargs) -> py_trees.behaviour.Behaviour:
     write_blackboard_variable = BlackboardWriter(name="Writer", **kwargs)
-    joint_setpoints = {
+    home_joint_setpoints = {
         "torso_lift_joint": 0.35,
         "arm_1_joint": 0.71,
         "arm_2_joint": 1.02,
@@ -48,12 +49,20 @@ def create_tree(**kwargs) -> py_trees.behaviour.Behaviour:
         "head_1_joint": 0,
         "head_2_joint": 0,
     }
-    command_joint_positions = CommandJointPositions(joint_setpoints)
+    pick_joint_positions = None
+
+    with open("robot_config/pre_pick/joint_positions.yaml", "r") as stream:
+        pick_joint_positions = yaml.safe_load(stream)
+
+    get_into_pick_position = MoveLinearly(
+        wheel_max_speed_radps=WHEEL_MAX_SPEED_RADPS, distance=0.2
+    )
+    set_pick_joint_positions = CommandJointPositions(pick_joint_positions)
 
     root = py_trees.composites.Sequence(
         name="CommandRobot",
         memory=True,
-        children=[write_blackboard_variable, command_joint_positions],
+        children=[write_blackboard_variable, get_into_pick_position],
     )
     return root
 

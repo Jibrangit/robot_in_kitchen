@@ -1,5 +1,8 @@
 import numpy as np
 from typing import Union
+import yaml
+import sys
+import os
 from controller import Robot, Supervisor, Motor, PositionSensor
 
 
@@ -112,3 +115,25 @@ class RobotDeviceIO:
     def set_motors_vels(self, vl, vr) -> None:
         self._leftMotor.setVelocity(vl)
         self._rightMotor.setVelocity(vr)
+
+    def save_joint_positions(self, filepath):
+        joint_positions = self.get_joint_positions()
+        with open(filepath, "w") as outfile:
+            yaml.dump(joint_positions, outfile, default_flow_style=False)
+
+    def save_robot_se2_pose(self, filepath):
+        pose = list(self.get_se2_pose())
+        pose = [float(elem) if isinstance(elem, np.generic) else elem for elem in pose]
+        with open(filepath, "w") as outfile:
+            yaml.dump(pose, outfile, default_flow_style=False)
+
+    def get_encoder_readings(self) -> tuple[float]:
+        return self._leftEncoder.getValue(), self._rightEncoder.getValue()
+
+
+def load_joint_positions(filepath):
+    pass
+
+
+def load_robot_se2_pose(filepath):
+    pass

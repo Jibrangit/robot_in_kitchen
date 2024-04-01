@@ -30,11 +30,11 @@ class CommandJointPositions(py_trees.behaviour.Behaviour):
         for position, setpoint in zip(
             joint_positions.values(), self._joint_setpoints.values()
         ):
-            error += (position - setpoint) ** 2
+            error += np.abs(position - setpoint)
 
         if error < 0.01:
             self.logger.info(
-                f"Successfully commanded robot joints to positions : {self._joint_setpoints}"
+                f"Successfully commanded robot joints to positions : {joint_positions}"
             )
             return py_trees.common.Status.SUCCESS
         else:

@@ -1,11 +1,16 @@
-import py_trees 
-from typing import Union 
+import py_trees
+from typing import Union
+import time
+import numpy as np
 
-from robot_controller import Controller
+from libraries.robot_controller import Controller, compute_movt_from_encoder
 
 
 WHEEL_MAX_SPEED_RADPS = 10.15
 BALL_DIAMETER = 0.0399
+WHEEL_RADIUS = 0.016
+EFFECTIVE_WHEEL_RADIUS = 0.012
+
 
 class NavigateThroughPoints(py_trees.behaviour.Behaviour):
     """
@@ -81,4 +86,68 @@ class NavigateThroughPoints(py_trees.behaviour.Behaviour):
 
     def terminate(self, new_status: py_trees.common.Status) -> None:
         self._robot_comms.set_motors_vels(0, 0)
+        return super().terminate(new_status)
+
+
+class MoveLinearly(py_trees.behaviour.Behaviour):
+    """
+    Move forward by some metres.
+    """
+
+    def __init__(
+        self, wheel_max_speed_radps: float, distance: float, name: str = "MoveLinearly"
+    ):
+        super(MoveLinearly, self).__init__(name)
+        self.logger.info("%s.__init__()" % (self.__class__.__name__))
+
+        self._wheel_radius = 0.016
+        self._wheel_max_speed_radps = wheel_max_speed_radps
+        self._distance = distance
+        self._travelled_distance = 0.0
+
+        self._blackboard_reader = self.attach_blackboard_client()
+        self._blackboard_reader.register_key(
+            key="timestep", access=py_trees.common.Access.READ
+        )
+        self._blackboard_reader.register_key(
+            key="robot_comms", access=py_trees.common.Access.READ
+        )
+
+    def setup(self, **kwargs: int) -> None:
+
+        self.logger.info("%s.setup()" % (self.__class__.__name__))
+
+        self._timestep = self._blackboard_reader.timestep
+        self._robot_comms = self._blackboard_reader.robot_comms
+
+    def initialise(self) -> None:
+        self._prev_el, self._prev_er = self._robot_comms.get_encoder_readings()
+        self._dist_moved = 0.0
+        self._wheel_speed = (
+            (self._distance / np.abs(self._distance))
+            * self._wheel_max_speed_radps
+            * 0.3
+        )
+        print(f"Initial eencoder readings : {self._robot_comms.get_encoder_readings()}")
+
+    def update(self) -> py_trees.common.Status:
+
+        el, er = self._robot_comms.get_encoder_readings()
+        lin_dist, ang_dist = compute_movt_from_encoder(
+            self._prev_el, self._prev_er, el, er, wheel_radius=EFFECTIVE_WHEEL_RADIUS
+        )
+        self._dist_moved += lin_dist
+        self.logger.info(f"Moved {self._dist_moved} so far")
+
+        if np.abs(self._dist_moved) < np.abs(self._distance):
+
+            self._robot_comms.set_motors_vels(self._wheel_speed, self._wheel_speed)
+            return py_trees.common.Status.RUNNING
+
+        else:
+            self.logger.info(f"Successfully moved forward by {self._dist_moved} metres")
+            self._robot_comms.set_motors_vels(0, 0)
+            return py_trees.common.Status.SUCCESS
+
+    def terminate(self, new_status: py_trees.common.Status) -> None:
         return super().terminate(new_status)
