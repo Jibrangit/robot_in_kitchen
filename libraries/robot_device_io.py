@@ -66,6 +66,14 @@ class RobotDeviceIO:
             )
             self._robot_joint_sensor_handles[joint_sensor].enable(timestep)
 
+    def _initialize_force_feedback(self, timestep):
+        self._robot_joint_handles["gripper_left_finger_joint"].enableForceFeedback(
+            timestep
+        )
+        self._robot_joint_handles["gripper_right_finger_joint"].enableForceFeedback(
+            timestep
+        )
+
     def joints_to_home_positions(self):
         for joint, joint_value in self._robot_joints.items():
             self._robot_joint_handles[joint].setPosition(joint_value)
@@ -81,6 +89,12 @@ class RobotDeviceIO:
     def set_joint_positions(self, joint_positions: dict):
         for joint_name, joint_position in joint_positions.items():
             self._robot_joint_handles[joint_name].setPosition(joint_position)
+
+    def get_force_feedback(self):
+        return (
+            self._robot_joint_handles["gripper_left_finger_joint"].getForceFeedback(),
+            self._robot_joint_handles["gripper_right_finger_joint"].getForceFeedback(),
+        )
 
     def initialize_devices(self, timestep) -> None:
 
@@ -104,6 +118,7 @@ class RobotDeviceIO:
         self._compass.enable(timestep)
 
         self._initialize_robot_joints(timestep)
+        self._initialize_force_feedback(timestep)
 
     def get_se2_pose(self) -> tuple[float]:
         xw = self._gps.getValues()[0]

@@ -24,7 +24,7 @@ import yaml
 
 from libraries.robot_controller import Controller
 from libraries.robot_device_io import RobotDeviceIO
-from libraries.behaviors.robot_arm_behaviors import CommandJointPositions
+from libraries.behaviors.robot_arm_behaviors import CommandJointPositions, ControlGripper
 from libraries.behaviors.blackboard_writer import BlackboardWriter
 from libraries.behaviors.planning_behaviors import GeneratePath
 from libraries.behaviors.navigation_behaviors import NavigateThroughPoints, MoveLinearly
@@ -35,34 +35,37 @@ WHEEL_MAX_SPEED_RADPS = 10.15
 
 def create_tree(**kwargs) -> py_trees.behaviour.Behaviour:
     write_blackboard_variable = BlackboardWriter(name="Writer", **kwargs)
-    home_joint_setpoints = {
-        "torso_lift_joint": 0.35,
-        "arm_1_joint": 0.71,
-        "arm_2_joint": 1.02,
-        "arm_3_joint": -2.815,
-        "arm_4_joint": 1.011,
-        "arm_5_joint": 0,
-        "arm_6_joint": 0,
-        "arm_7_joint": 0,
-        "gripper_left_finger_joint": 0,
-        "gripper_right_finger_joint": 0,
-        "head_1_joint": 0,
-        "head_2_joint": 0,
-    }
     pick_joint_positions = None
+    pickup_joint_positions = None 
 
-    with open("robot_config/pre_pick/joint_positions.yaml", "r") as stream:
+    JC = { 'openGripper' : {'gripper_left_finger_joint' : 0.045,
+                        'gripper_right_finger_joint': 0.045},
+       'closeGripper': {'gripper_left_finger_joint' : 0.0,
+                        'gripper_right_finger_joint': 0.0}}
+
+    with open("robot_config/pick/joint_positions.yaml", "r") as stream:
         pick_joint_positions = yaml.safe_load(stream)
+    with open("robot_config/pickup/joint_positions.yaml", "r") as stream:
+        pickup_joint_positions = yaml.safe_load(stream)
+
 
     get_into_pick_position = MoveLinearly(
-        wheel_max_speed_radps=WHEEL_MAX_SPEED_RADPS, distance=0.2
+        wheel_max_speed_radps=WHEEL_MAX_SPEED_RADPS, distance=0.15
     )
     set_pick_joint_positions = CommandJointPositions(pick_joint_positions)
+    close_gripper = ControlGripper(action=True, gripping_force=-10)
+    pickup_jar = CommandJointPositions(pickup_joint_positions)
 
     root = py_trees.composites.Sequence(
         name="CommandRobot",
         memory=True,
-        children=[write_blackboard_variable, get_into_pick_position],
+        children=[
+            write_blackboard_variable,
+            set_pick_joint_positions,
+            get_into_pick_position,
+            close_gripper,
+            pickup_jar
+        ],
     )
     return root
 

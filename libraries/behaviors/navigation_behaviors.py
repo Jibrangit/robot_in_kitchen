@@ -91,11 +91,15 @@ class NavigateThroughPoints(py_trees.behaviour.Behaviour):
 
 class MoveLinearly(py_trees.behaviour.Behaviour):
     """
-    Move forward by some metres.
+    Move forward by x metres.
     """
 
     def __init__(
-        self, wheel_max_speed_radps: float, distance: float, name: str = "MoveLinearly"
+        self,
+        wheel_max_speed_radps: float,
+        distance: float,
+        speed_factor=0.1,
+        name: str = "MoveLinearly",
     ):
         super(MoveLinearly, self).__init__(name)
         self.logger.info("%s.__init__()" % (self.__class__.__name__))
@@ -104,6 +108,7 @@ class MoveLinearly(py_trees.behaviour.Behaviour):
         self._wheel_max_speed_radps = wheel_max_speed_radps
         self._distance = distance
         self._travelled_distance = 0.0
+        self._speed_factor = speed_factor  # Ratio of max speed
 
         self._blackboard_reader = self.attach_blackboard_client()
         self._blackboard_reader.register_key(
@@ -126,9 +131,8 @@ class MoveLinearly(py_trees.behaviour.Behaviour):
         self._wheel_speed = (
             (self._distance / np.abs(self._distance))
             * self._wheel_max_speed_radps
-            * 0.3
+            * self._speed_factor
         )
-        print(f"Initial eencoder readings : {self._robot_comms.get_encoder_readings()}")
 
     def update(self) -> py_trees.common.Status:
 
@@ -137,7 +141,7 @@ class MoveLinearly(py_trees.behaviour.Behaviour):
             self._prev_el, self._prev_er, el, er, wheel_radius=EFFECTIVE_WHEEL_RADIUS
         )
         self._dist_moved += lin_dist
-        self.logger.info(f"Moved {self._dist_moved} so far")
+        self.logger.debug(f"Moved {self._dist_moved} so far")
 
         if np.abs(self._dist_moved) < np.abs(self._distance):
 
