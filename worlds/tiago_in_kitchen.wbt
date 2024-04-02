@@ -46,8 +46,8 @@ WorldInfo {
 }
 Viewpoint {
   fieldOfView 1.1
-  orientation 0.14767584149212065 0.9475705167583002 -0.28337600747064323 1.0056131142274982
-  position -4.439081818588969 1.399229937876226 9.633954427581529
+  orientation -0.3785421960171629 -0.7076553730593885 0.5965984234094837 4.821299164590343
+  position -0.8734376002567389 2.172553862652336 6.942761598504933
   exposure 0.7999999999999999
 }
 TexturedBackground {
@@ -1656,7 +1656,7 @@ Robot {
                                                                       }
                                                                     ]
                                                                     endPoint DEF WRIST Solid {
-                                                                      translation 0.0549999999999942 0 0
+                                                                      translation 0.05499999999999417 0 0
                                                                       rotation 0.5773500549372459 0.5773506976959637 0.5773500549354291 2.09439935723957
                                                                       children [
                                                                         Pose {
@@ -4246,6 +4246,10 @@ Robot {
                               DEF CAMERA Pose {
                                 translation 0.107 0.0802 0
                                 children [
+                                  Camera {
+                                    recognition Recognition {
+                                    }
+                                  }
                                   Solid {
                                     translation -0.028 -0.035 -0.009
                                     rotation 1 0 0 -1.5708
@@ -4932,7 +4936,7 @@ Robot {
         }
       ]
       endPoint DEF RIGHT_WHEEL Solid {
-        translation -2.6885926418083754e-05 -0.20200513197966463 0.002779242307130695
+        translation -2.688592641808376e-05 -0.20200513197966463 0.0027792423071306954
         rotation 0.08970888462335976 -0.7042557475840332 0.7042557475906657 2.9626472116919813
         children [
           DEF BIG_WHEEL Group {
@@ -5177,7 +5181,7 @@ Robot {
             }
             endPoint DEF SMALL_WHEEL Solid {
               translation -0.016 0 -0.04
-              rotation -0.9999894755789469 -0.003244121917144409 -0.003244133833493485 1.5708105244763435
+              rotation -0.9999894755789469 -0.0032441219171444077 -0.003244133833493485 1.5708105244763435
               children [
                 DEF SMALL_WHEEL_SHAPE Shape {
                   appearance PBRAppearance {
@@ -5298,7 +5302,7 @@ Robot {
             }
             endPoint DEF SMALL_WHEEL Solid {
               translation -0.016 0 -0.04
-              rotation -0.9999819873290879 -0.004244106798877616 -0.004244122388375416 1.5708180128330498
+              rotation -0.9999819873290879 -0.004244106798877618 -0.004244122388375416 1.5708180128330493
               children [
                 DEF SMALL_WHEEL_SHAPE Shape {
                   appearance PBRAppearance {
