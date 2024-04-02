@@ -1,6 +1,6 @@
 import numpy as np 
 import py_trees
-from libraries.mapping import RangeFinderMapper
+from mapping import RangeFinderMapper
 
 
 class MapWithRangeFinder(py_trees.behaviour.Behaviour):

@@ -1,0 +1,17 @@
+digraph pastafarianism {
+ordering=out;
+graph [fontname="times-roman"];
+node [fontname="times-roman"];
+edge [fontname="times-roman"];
+CommandRobot [fillcolor=orange, fontcolor=black, fontsize=9, label="Ⓜ CommandRobot", shape=box, style=filled];
+Writer [fillcolor=gray, fontcolor=black, fontsize=9, label=Writer, shape=ellipse, style=filled];
+CommandRobot -> Writer;
+CommandJointPositions [fillcolor=gray, fontcolor=black, fontsize=9, label=CommandJointPositions, shape=ellipse, style=filled];
+CommandRobot -> CommandJointPositions;
+MoveLinearly [fillcolor=gray, fontcolor=black, fontsize=9, label=MoveLinearly, shape=ellipse, style=filled];
+CommandRobot -> MoveLinearly;
+ControlGripper [fillcolor=gray, fontcolor=black, fontsize=9, label=ControlGripper, shape=ellipse, style=filled];
+CommandRobot -> ControlGripper;
+"CommandJointPositions*" [fillcolor=gray, fontcolor=black, fontsize=9, label="CommandJointPositions*", shape=ellipse, style=filled];
+CommandRobot -> "CommandJointPositions*";
+}
