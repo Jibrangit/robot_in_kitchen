@@ -58,6 +58,17 @@ class RangeFinderParams:
             except yaml.YAMLError as exc:
                 print(exc)
 
+    def get_data(self) -> dict:
+        return {
+            "num_readings": self.num_readings,
+            "zero_angle": self.zero_angle,
+            "final_angle": self.final_angle,
+            "actual_num_readings": self.actual_num_readings,
+            "first_idx": self.first_idx,
+            "last_idx": self.last_idx,
+            "x_offset": self.x_offset,
+        }
+
 
 class Mapper:
     def __init__(self, mapping_params_filepath):
