@@ -28,4 +28,6 @@ ClockwiseAroundTable [fillcolor=gray, fontcolor=black, fontsize=9, label=Clockwi
 MoveAroundTable -> ClockwiseAroundTable;
 CounterClockwiseAroundTable [fillcolor=gray, fontcolor=black, fontsize=9, label=CounterClockwiseAroundTable, shape=ellipse, style=filled];
 MoveAroundTable -> CounterClockwiseAroundTable;
+MapWithRangeFinder [fillcolor=gray, fontcolor=black, fontsize=9, label=MapWithRangeFinder, shape=ellipse, style=filled];
+MapThePlace -> MapWithRangeFinder;
 }

@@ -35,7 +35,7 @@ class BlackboardContext(py_trees.behaviour.Behaviour):
             key="mapping_params", access=py_trees.common.Access.WRITE
         )
         self._blackboard.register_key(
-            key="map_display", access=py_trees.common.Access.WRITE
+            key="display", access=py_trees.common.Access.WRITE
         )
         self._blackboard.register_key(
             key="marker", access=py_trees.common.Access.WRITE
@@ -53,7 +53,7 @@ class BlackboardContext(py_trees.behaviour.Behaviour):
         self._blackboard.set(
             name="range_finder_params", value=kwargs["range_finder_params"]
         )
-        self._blackboard.set(name="map_display", value=kwargs["map_display"])
+        self._blackboard.set(name="display", value=kwargs["display"])
         self._blackboard.set(name="marker", value=kwargs["marker"])
 
         self.logger.info(

@@ -19,7 +19,7 @@ from libraries.robot_device_io import RobotDeviceIO
 
 from behaviors.blackboard_context import BlackboardContext
 from behaviors.publishers import PublishRobotOdometry, PublishRangeFinderData
-from behaviors.mapping_behaviors import CheckCspaceExists
+from behaviors.mapping_behaviors import CheckCspaceExists, MapWithRangeFinder
 from libraries.mapping import MappingParams, RangeFinderParams
 from behaviors.navigation_behaviors import NavigateThroughPoints
 
@@ -50,11 +50,12 @@ def create_mapping_tree() -> py_trees.behaviour.Behaviour:
         memory=True,
         children=[clockwise_around_table, counter_clockwise_around_table],
     )
+    generate_map = MapWithRangeFinder(display=False)
 
     map_the_place = py_trees.composites.Parallel(
         name="MapThePlace",
         policy=py_trees.common.ParallelPolicy.SuccessOnOne(),
-        children=[move_around_table],
+        children=[move_around_table, generate_map],
     )
     root = py_trees.composites.Selector(
         name="GetConfigurationSpace",
@@ -128,7 +129,7 @@ def main():
         range_finder=range_finder,
         range_finder_params=range_finder_params,
         mapping_params=mapping_params,
-        map_display=map_display,
+        display=map_display,
         marker=marker,
     )
 

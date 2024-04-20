@@ -71,8 +71,8 @@ class RangeFinderParams:
 
 
 class Mapper:
-    def __init__(self, mapping_params_filepath):
-        self._mapping_params = MappingParams(mapping_params_filepath)
+    def __init__(self, mapping_params: MappingParams):
+        self._mapping_params = mapping_params
         self._map = np.zeros(
             (self._mapping_params.map_width, self._mapping_params.map_height),
             dtype=float,
@@ -140,11 +140,11 @@ class Mapper:
 class RangeFinderMapper(Mapper):
     def __init__(
         self,
-        mapping_params: dict,
-        range_finder_params: dict,
+        mapping_params: MappingParams,
+        range_finder_params: RangeFinderParams,
     ):
         super().__init__(mapping_params)
-        self._lidar_params = RangeFinderParams(range_finder_params)
+        self._range_finder_params = range_finder_params
 
     def _lidar_robot_to_world(self, range_finder_readings, xw, yw, theta) -> np.array:
         X_i = range_finder_readings
@@ -164,7 +164,7 @@ class RangeFinderMapper(Mapper):
         )
         px_robot, py_robot = self.world2map(robot_pose[0], robot_pose[1])
 
-        for i in range(self._lidar_params.actual_num_readings):
+        for i in range(self._range_finder_params.actual_num_readings):
             px, py = self.world2map(X_w[0][i], X_w[1][i])
             if self._map[px, py] < 1:
                 self._map[px, py] += 0.01
