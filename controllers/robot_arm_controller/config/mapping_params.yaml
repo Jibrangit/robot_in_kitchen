@@ -1,8 +1,0 @@
-map_width: 300
-map_height: 300
-arena_width: 4.7
-arena_length: 5.9
-top_left_x: -2.5
-top_left_y: 1.8
-occupancy_grid_threshold: 0.3
-kernel_size: 43
