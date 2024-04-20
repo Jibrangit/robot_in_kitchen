@@ -1,0 +1,4 @@
+wheel_max_speed_radps: 10.15
+wheel_radius: 0.016
+effective_wheel_radius: 0.012
+trackwidth: 0.054

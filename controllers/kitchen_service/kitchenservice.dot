@@ -1,0 +1,33 @@
+digraph pastafarianism {
+ordering=out;
+graph [fontname="times-roman"];
+node [fontname="times-roman"];
+edge [fontname="times-roman"];
+KitchenService [fillcolor=orange, fontcolor=black, fontsize=9, label="Ⓜ KitchenService", shape=box, style=filled];
+BlackboardContext [fillcolor=gray, fontcolor=black, fontsize=9, label=BlackboardContext, shape=ellipse, style=filled];
+KitchenService -> BlackboardContext;
+ArrangeKitchen [fillcolor=gold, fontcolor=black, fontsize=9, label="ArrangeKitchen\nSuccessOnOne", shape=parallelogram, style=filled];
+KitchenService -> ArrangeKitchen;
+PublishData [fillcolor=gold, fontcolor=black, fontsize=9, label="PublishData\nSuccessOnOne", shape=parallelogram, style=filled];
+ArrangeKitchen -> PublishData;
+PublishRobotOdometry [fillcolor=gray, fontcolor=black, fontsize=9, label=PublishRobotOdometry, shape=ellipse, style=filled];
+PublishData -> PublishRobotOdometry;
+PublishRangeFinderData [fillcolor=gray, fontcolor=black, fontsize=9, label=PublishRangeFinderData, shape=ellipse, style=filled];
+PublishData -> PublishRangeFinderData;
+PerformTasks [fillcolor=orange, fontcolor=black, fontsize=9, label="Ⓜ PerformTasks", shape=box, style=filled];
+ArrangeKitchen -> PerformTasks;
+GetConfigurationSpace [fillcolor=cyan, fontcolor=black, fontsize=9, label=GetConfigurationSpace, shape=octagon, style=filled];
+PerformTasks -> GetConfigurationSpace;
+CheckCspaceExists [fillcolor=gray, fontcolor=black, fontsize=9, label=CheckCspaceExists, shape=ellipse, style=filled];
+GetConfigurationSpace -> CheckCspaceExists;
+MapThePlace [fillcolor=gold, fontcolor=black, fontsize=9, label="MapThePlace\nSuccessOnOne", shape=parallelogram, style=filled];
+GetConfigurationSpace -> MapThePlace;
+MoveAroundTable [fillcolor=orange, fontcolor=black, fontsize=9, label="Ⓜ MoveAroundTable", shape=box, style=filled];
+MapThePlace -> MoveAroundTable;
+ClockwiseAroundTable [fillcolor=gray, fontcolor=black, fontsize=9, label=ClockwiseAroundTable, shape=ellipse, style=filled];
+MoveAroundTable -> ClockwiseAroundTable;
+CounterClockwiseAroundTable [fillcolor=gray, fontcolor=black, fontsize=9, label=CounterClockwiseAroundTable, shape=ellipse, style=filled];
+MoveAroundTable -> CounterClockwiseAroundTable;
+MapWithRangeFinder [fillcolor=gray, fontcolor=black, fontsize=9, label=MapWithRangeFinder, shape=ellipse, style=filled];
+MapThePlace -> MapWithRangeFinder;
+}

@@ -58,10 +58,21 @@ class RangeFinderParams:
             except yaml.YAMLError as exc:
                 print(exc)
 
+    def get_data(self) -> dict:
+        return {
+            "num_readings": self.num_readings,
+            "zero_angle": self.zero_angle,
+            "final_angle": self.final_angle,
+            "actual_num_readings": self.actual_num_readings,
+            "first_idx": self.first_idx,
+            "last_idx": self.last_idx,
+            "x_offset": self.x_offset,
+        }
+
 
 class Mapper:
-    def __init__(self, mapping_params_filepath):
-        self._mapping_params = MappingParams(mapping_params_filepath)
+    def __init__(self, mapping_params: MappingParams):
+        self._mapping_params = mapping_params
         self._map = np.zeros(
             (self._mapping_params.map_width, self._mapping_params.map_height),
             dtype=float,
@@ -129,42 +140,14 @@ class Mapper:
 class RangeFinderMapper(Mapper):
     def __init__(
         self,
-        lidar,
-        mapping_params_filepath: str,
-        range_finder_params_filepath: str,
+        mapping_params: MappingParams,
+        range_finder_params: RangeFinderParams,
     ):
-        super().__init__(mapping_params_filepath)
-        self._lidar = lidar
-        self._lidar_params = RangeFinderParams(range_finder_params_filepath)
+        super().__init__(mapping_params)
+        self._range_finder_params = range_finder_params
 
-        self._angles = np.linspace(
-            self._lidar_params.zero_angle,
-            self._lidar_params.final_angle,
-            self._lidar_params.num_readings,
-        )
-        self._angles = self._angles[
-            self._lidar_params.first_idx : self._lidar_params.last_idx
-        ]
-
-    def enable_lidar(self, timestep):
-        self._lidar.enable(timestep)
-        self._lidar.enablePointCloud()
-
-    def _get_lidar_readings(self) -> List[float]:
-        ranges = self._lidar.getRangeImage()
-        ranges[ranges == np.inf] = 100
-        ranges = ranges[self._lidar_params.first_idx : self._lidar_params.last_idx]
-
-        return np.array(
-            [
-                ranges * np.cos(self._angles) + self._lidar_params.x_offset,
-                ranges * np.sin(self._angles),
-                np.ones(self._lidar_params.actual_num_readings),
-            ]
-        )
-
-    def _lidar_robot_to_world(self, xw, yw, theta) -> np.array:
-        X_i = self._get_lidar_readings()
+    def _lidar_robot_to_world(self, range_finder_readings, xw, yw, theta) -> np.array:
+        X_i = range_finder_readings
         w_T_r = np.array(
             [
                 [np.cos(theta), -np.sin(theta), xw],
@@ -175,11 +158,13 @@ class RangeFinderMapper(Mapper):
 
         return w_T_r @ X_i
 
-    def generate_map(self, robot_pose) -> None:
-        X_w = self._lidar_robot_to_world(robot_pose[0], robot_pose[1], robot_pose[2])
+    def generate_map(self, range_finder_readings, robot_pose) -> None:
+        X_w = self._lidar_robot_to_world(
+            range_finder_readings, robot_pose[0], robot_pose[1], robot_pose[2]
+        )
         px_robot, py_robot = self.world2map(robot_pose[0], robot_pose[1])
 
-        for i in range(self._lidar_params.actual_num_readings):
+        for i in range(self._range_finder_params.actual_num_readings):
             px, py = self.world2map(X_w[0][i], X_w[1][i])
             if self._map[px, py] < 1:
                 self._map[px, py] += 0.01

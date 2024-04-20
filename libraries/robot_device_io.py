@@ -111,21 +111,8 @@ class RobotDeviceIO:
         self._leftEncoder.enable(timestep)
         self._rightEncoder.enable(timestep)
 
-        self._gps = self._robot.getDevice("gps")
-        self._gps.enable(timestep)
-
-        self._compass = self._robot.getDevice("compass")
-        self._compass.enable(timestep)
-
         self._initialize_robot_joints(timestep)
         self._initialize_force_feedback(timestep)
-
-    def get_se2_pose(self) -> tuple[float]:
-        xw = self._gps.getValues()[0]
-        yw = self._gps.getValues()[1]
-        theta = np.arctan2(self._compass.getValues()[0], self._compass.getValues()[1])
-
-        return xw, yw, theta
 
     def set_motors_vels(self, vl, vr) -> None:
         self._leftMotor.setVelocity(vl)
@@ -136,19 +123,10 @@ class RobotDeviceIO:
         with open(filepath, "w") as outfile:
             yaml.dump(joint_positions, outfile, default_flow_style=False)
 
-    def save_robot_se2_pose(self, filepath):
-        pose = list(self.get_se2_pose())
-        pose = [float(elem) if isinstance(elem, np.generic) else elem for elem in pose]
-        with open(filepath, "w") as outfile:
-            yaml.dump(pose, outfile, default_flow_style=False)
 
     def get_encoder_readings(self) -> tuple[float]:
         return self._leftEncoder.getValue(), self._rightEncoder.getValue()
 
 
 def load_joint_positions(filepath):
-    pass
-
-
-def load_robot_se2_pose(filepath):
     pass
