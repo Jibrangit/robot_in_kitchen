@@ -159,6 +159,16 @@ class RangeFinderMapper(Mapper):
         )
 
         return w_T_r @ X_i
+    
+    def reduce_probability_for_pixels_in_line_of_sight(self, px_robot, py_robot, px, py):
+        if self._map[px, py] > 0.1:
+            laser_line_coordinates = plot_line(px_robot, py_robot, px, py)
+            for coordinate in laser_line_coordinates[1:-1]:
+                px_laser = coordinate[0]
+                py_laser = coordinate[1]
+
+                if self._map[px_laser, py_laser] > 0.01:
+                    self._map[px_laser, py_laser] -= 0.001
 
     def generate_map(self, range_finder_readings, robot_pose) -> None:
         X_w = self._lidar_robot_to_world(
@@ -171,14 +181,5 @@ class RangeFinderMapper(Mapper):
             px, py = self.world2map(X_w[0][i], X_w[1][i])
             if self._map[px, py] < 1:
                 self._map[px, py] += 0.01
-                self._mapped_pixels.append((px, py))
-
-            # # Reduce probability of obstacle for all pixels in the laser's line of sight using Bresenham's algorithm.
-            # if self._map[px, py] > 0.1:
-            #     laser_line_coordinates = plot_line(px_robot, py_robot, px, py)
-            #     for coordinate in laser_line_coordinates[1:-1]:
-            #         px_laser = coordinate[0]
-            #         py_laser = coordinate[1]
-
-            #         if self._map[px_laser, py_laser] > 0.01:
-            #             self._map[px_laser, py_laser] -= 0.001
+                self._mapped_pixels.append((px, py))            
+        
