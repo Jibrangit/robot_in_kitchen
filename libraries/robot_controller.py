@@ -1,6 +1,8 @@
 import numpy as np
 from enum import Enum
 from typing import List, Tuple
+from dataclasses import dataclass
+import yaml 
 
 TRACKWIDTH = 0.054
 WHEEL_RADIUS = 0.0201
@@ -13,14 +15,27 @@ class RobotDriveState(Enum):
     ADJUST_CASTOR = 3
 
 
+@dataclass
+class DifferentialDriveRobotParams:
+    wheel_max_speed_radps: float
+    wheel_radius: float
+    effective_wheel_radius: float
+    trackwidth: float
+
+def initialize_robot_params_from_yaml(robot_params_file_path : str):
+    with open(robot_params_file_path, 'r') as file:
+        params = yaml.safe_load(file)
+    
+    return DifferentialDriveRobotParams(**params)
+
 class Controller:
-    def __init__(self, wheel_max_speed: float, waypoints) -> None:
+    def __init__(self, robot_params: DifferentialDriveRobotParams, waypoints) -> None:
         self._waypoints = waypoints
         self._index = 0
         self._robot_state = RobotDriveState.DRIVE
         self._MIN_POSITION_ERROR = 0.3  # metres
         self._MIN_HEADING_ERROR = 0.1  # radians
-        self._wheel_max_speed_radps = wheel_max_speed
+        self._robot_params = robot_params
 
     def compute_errors(self, pose) -> Tuple[float]:
         """
@@ -61,8 +76,8 @@ class Controller:
         if self._robot_state == RobotDriveState.DRIVE:
 
             p_trans, p_rot = (
-                0.3 * self._wheel_max_speed_radps,
-                0.1 * self._wheel_max_speed_radps,
+                0.3 * self._robot_params.wheel_max_speed_radps,
+                0.1 * self._robot_params.wheel_max_speed_radps,
             )
             vl = p_trans * rho - p_rot * alpha
             vr = p_trans * rho + p_rot * alpha
@@ -74,8 +89,8 @@ class Controller:
         elif self._robot_state == RobotDriveState.TURN:
 
             p_trans, p_rot = (
-                0.1 * self._wheel_max_speed_radps,
-                0.3 * self._wheel_max_speed_radps,
+                0.1 * self._robot_params.wheel_max_speed_radps,
+                0.3 * self._robot_params.wheel_max_speed_radps,
             )
             vl = p_trans * rho - p_rot * alpha
             vr = p_trans * rho + p_rot * alpha
@@ -86,8 +101,14 @@ class Controller:
         else:
             vl, vr = 0.0, 0.0
 
-        vl = max(min(vl, self._wheel_max_speed_radps), -self._wheel_max_speed_radps)
-        vr = max(min(vr, self._wheel_max_speed_radps), -self._wheel_max_speed_radps)
+        vl = max(
+            min(vl, self._robot_params.wheel_max_speed_radps),
+            -self._robot_params.wheel_max_speed_radps,
+        )
+        vr = max(
+            min(vr, self._robot_params.wheel_max_speed_radps),
+            -self._robot_params.wheel_max_speed_radps,
+        )
 
         return vl, vr
 
@@ -108,12 +129,12 @@ class Controller:
 
 
 def compute_movt_from_encoder(
-    prev_el, prev_er, el, er, wheel_radius=WHEEL_RADIUS
+    prev_el, prev_er, el, er, robot_params: DifferentialDriveRobotParams
 ) -> Tuple[float, float]:
-    delta_l = (el - prev_el) * wheel_radius
-    delta_r = (er - prev_er) * wheel_radius
+    delta_l = (el - prev_el) * robot_params.effective_wheel_radius
+    delta_r = (er - prev_er) * robot_params.effective_wheel_radius
 
     delta_s = (delta_l + delta_r) / 2.0
-    delta_omega_z = (delta_r - delta_l) / TRACKWIDTH
+    delta_omega_z = (delta_r - delta_l) / robot_params.trackwidth
 
     return delta_s, delta_omega_z

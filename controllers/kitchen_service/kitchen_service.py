@@ -2,6 +2,7 @@
 
 import sys
 import os
+import yaml
 
 from py_trees.common import Status
 
@@ -18,28 +19,83 @@ from libraries.robot_device_io import RobotDeviceIO
 
 from behaviors.blackboard_context import BlackboardContext
 from behaviors.publishers import PublishRobotOdometry, PublishRangeFinderData
+from behaviors.mapping_behaviors import CheckCspaceExists
 from libraries.mapping import MappingParams, RangeFinderParams
+from behaviors.navigation_behaviors import NavigateThroughPoints
+
+
+def read_yaml_file(file_path):
+    with open(file_path, "r") as file:
+        data = yaml.safe_load(file)
+        return data
+
+
+def get_coordinates(data, key):
+    return [(entry["x"], entry["y"]) for entry in data[key]]
+
+
+def create_mapping_tree() -> py_trees.behaviour.Behaviour:
+
+    kitchen_service_positions = read_yaml_file("config/kitchen_service_positions.yaml")
+    clockwise_around_table = NavigateThroughPoints(
+        get_coordinates(kitchen_service_positions, "clockwise_waypoints"),
+        name="ClockwiseAroundTable",
+    )
+    counter_clockwise_around_table = NavigateThroughPoints(
+        get_coordinates(kitchen_service_positions, "counter_clockwise_waypoints"),
+        name="CounterClockwiseAroundTable",
+    )
+    move_around_table = py_trees.composites.Sequence(
+        name="MoveAroundTable",
+        memory=True,
+        children=[clockwise_around_table, counter_clockwise_around_table],
+    )
+
+    map_the_place = py_trees.composites.Parallel(
+        name="MapThePlace",
+        policy=py_trees.common.ParallelPolicy.SuccessOnOne(),
+        children=[move_around_table],
+    )
+    root = py_trees.composites.Selector(
+        name="GetConfigurationSpace",
+        memory=False,
+        children=[CheckCspaceExists(), map_the_place],
+    )
+
+    return root
 
 
 def create_tree(**context) -> py_trees.behaviour.Behaviour:
     blackboard_context = BlackboardContext(name="BlackboardContext", **context)
+
     publish_odometry = PublishRobotOdometry()
     publish_range_finder_data = PublishRangeFinderData()
-
     publish_data = py_trees.composites.Parallel(
-        name="PublishData", policy=py_trees.common.ParallelPolicy.SuccessOnOne()
-    )
-    publish_data.add_children(
-        [
+        name="PublishData",
+        policy=py_trees.common.ParallelPolicy.SuccessOnOne(),
+        children=[
             publish_odometry,
             publish_range_finder_data,
+        ],
+    )
+    get_configuration_space = create_mapping_tree()
+    perform_tasks = py_trees.composites.Sequence(name="PerformTasks", memory=True)
+    perform_tasks.add_children(
+        [
+            get_configuration_space,
         ]
+    )
+
+    arrange_kitchen = py_trees.composites.Parallel(
+        name="ArrangeKitchen",
+        policy=py_trees.common.ParallelPolicy.SuccessOnOne(),
+        children=[publish_data, perform_tasks],
     )
     kitchen_service = py_trees.composites.Sequence(name="KitchenService", memory=True)
     kitchen_service.add_children(
         [
             blackboard_context,
-            publish_data,
+            arrange_kitchen,
         ]
     )
     return kitchen_service
@@ -53,9 +109,11 @@ def main():
     robot_handle = RobotDeviceIO(robot)
     robot_handle.initialize_devices(timestep)
     robot_handle.set_motors_vels(0, 0)
+
     range_finder = robot.getDevice("Hokuyo URG-04LX-UG01")
     gps_handle = robot.getDevice("gps")
     compass_handle = robot.getDevice("compass")
+
     range_finder_params = RangeFinderParams("config/hokuyo_params.yaml")
     mapping_params = MappingParams("config/mapping_params.yaml")
 

@@ -38,16 +38,14 @@ class PublishRobotOdometry(py_trees.behaviour.Behaviour):
 
         xw = self._gps_handle.getValues()[0]
         yw = self._gps_handle.getValues()[1]
-        theta = np.arctan2(self._compass_handle.getValues()[0], self._compass_handle.getValues()[1])
+        theta = np.arctan2(
+            self._compass_handle.getValues()[0], self._compass_handle.getValues()[1]
+        )
 
         self._blackboard.set(name="se2_pose", value=(xw, yw, theta))
 
-        print((xw, yw, theta))
-
         return py_trees.common.Status.RUNNING
 
-    def terminate(self, new_status: py_trees.common.Status) -> None:
-        pass
 
 class PublishRangeFinderData(py_trees.behaviour.Behaviour):
 
@@ -60,19 +58,15 @@ class PublishRangeFinderData(py_trees.behaviour.Behaviour):
             key="timestep", access=py_trees.common.Access.READ
         )
         self._blackboard.register_key(
-            key="range_finder", access=py_trees.common.Access.READ
+            key="range_finder", access=py_trees.common.Access.WRITE
         )
 
         self._blackboard.register_key(
             key="range_finder_params", access=py_trees.common.Access.READ
-        )   # Range finders specs and how it's mounted on the robot. 
+        )  # Range finders specs and how it's mounted on the robot.
         self._blackboard.register_key(
             key="range_finder_readings", access=py_trees.common.Access.WRITE
         )
-
-    def _enable_lidar(self):
-        self._range_finder.enable(self._timestep)
-        self._range_finder.enablePointCloud()
 
     def setup(self, **kwargs: int) -> None:
 
@@ -87,8 +81,11 @@ class PublishRangeFinderData(py_trees.behaviour.Behaviour):
             self._range_finder_params.num_readings,
         )[self._range_finder_params.first_idx : self._range_finder_params.last_idx]
 
-    def initialise(self) -> None:
-        self._enable_lidar()
+        self._range_finder.enable(self._timestep)
+        self._range_finder.enablePointCloud()
+
+    # def initialise(self) -> None:
+        
 
     def update(self) -> py_trees.common.Status:
 
@@ -105,13 +102,6 @@ class PublishRangeFinderData(py_trees.behaviour.Behaviour):
                 np.ones(self._range_finder_params.actual_num_readings),
             ]
         )
-        self._blackboard.set(
-            "range_finder_readings", value=range_finder_readings
-        )
-
-        print(range_finder_readings)
+        self._blackboard.set("range_finder_readings", value=range_finder_readings)
 
         return py_trees.common.Status.RUNNING
-
-    def terminate(self, new_status: py_trees.common.Status) -> None:
-        pass
