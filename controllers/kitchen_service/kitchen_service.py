@@ -50,7 +50,7 @@ def create_mapping_tree() -> py_trees.behaviour.Behaviour:
         memory=True,
         children=[clockwise_around_table, counter_clockwise_around_table],
     )
-    generate_map = MapWithRangeFinder(display=False)
+    generate_map = MapWithRangeFinder(display=True)
 
     map_the_place = py_trees.composites.Parallel(
         name="MapThePlace",

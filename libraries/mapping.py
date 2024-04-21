@@ -22,7 +22,7 @@ class MappingParams:
     def __init__(self, filepath) -> None:
 
         with open(filepath, "r") as mapping_params_file:
-            try:
+            try: 
                 mapping_params = yaml.safe_load(mapping_params_file)
 
                 self.map_width = mapping_params["map_width"]
@@ -79,16 +79,18 @@ class Mapper:
         )
         self._pose = (0, 0)
 
+        self._width_ratio = (
+            self._mapping_params.map_width / self._mapping_params.arena_width
+        )
+        self._height_ratio = (
+            self._mapping_params.map_height / self._mapping_params.arena_length
+        )
+        self._mapped_pixels = []
+
     def world2map(self, x, y) -> Tuple[float]:
         self._pose = (x, y)
-        px = np.round(
-            ((x - self._mapping_params.top_left_x) / self._mapping_params.arena_width)
-            * self._mapping_params.map_width
-        )
-        py = np.round(
-            ((self._mapping_params.top_left_y - y) / self._mapping_params.arena_length)
-            * self._mapping_params.map_height
-        )
+        px = (x - self._mapping_params.top_left_x) * self._width_ratio
+        py = (self._mapping_params.top_left_y - y) * self._height_ratio
 
         return int(px), int(py)
 
@@ -119,12 +121,12 @@ class Mapper:
 
     def display_map(self, display):
         # Draw configuration map
-        for row in np.arange(0, self._mapping_params.map_width):
-            for col in np.arange(0, self._mapping_params.map_height):
-                v = min(int((self._map[row, col]) * 255), 255)
-                if v > 0.01:
-                    display.setColor(v * 256**2 + v * 256 + v)
-                    display.drawPixel(row, col)
+        for pixel in self._mapped_pixels:
+            row, col = pixel
+            v = min(int((self._map[row, col]) * 255), 255)
+            if v > 100:
+                display.setColor(v * 256**2 + v * 256 + v)
+                display.drawPixel(row, col)
 
     def display_cspace(self, cspace):
         plt.imshow(cspace)
@@ -157,19 +159,9 @@ class RangeFinderMapper(Mapper):
         )
 
         return w_T_r @ X_i
-
-    def generate_map(self, range_finder_readings, robot_pose) -> None:
-        X_w = self._lidar_robot_to_world(
-            range_finder_readings, robot_pose[0], robot_pose[1], robot_pose[2]
-        )
-        px_robot, py_robot = self.world2map(robot_pose[0], robot_pose[1])
-
-        for i in range(self._range_finder_params.actual_num_readings):
-            px, py = self.world2map(X_w[0][i], X_w[1][i])
-            if self._map[px, py] < 1:
-                self._map[px, py] += 0.01
-
-            # Reduce probability of obstacle for all pixels in the laser's line of sight using Bresenham's algorithm.
+    
+    def reduce_probability_for_pixels_in_line_of_sight(self, px_robot, py_robot, px, py):
+        if self._map[px, py] > 0.1:
             laser_line_coordinates = plot_line(px_robot, py_robot, px, py)
             for coordinate in laser_line_coordinates[1:-1]:
                 px_laser = coordinate[0]
@@ -177,3 +169,17 @@ class RangeFinderMapper(Mapper):
 
                 if self._map[px_laser, py_laser] > 0.01:
                     self._map[px_laser, py_laser] -= 0.001
+
+    def generate_map(self, range_finder_readings, robot_pose) -> None:
+        X_w = self._lidar_robot_to_world(
+            range_finder_readings, robot_pose[0], robot_pose[1], robot_pose[2]
+        )
+        px_robot, py_robot = self.world2map(robot_pose[0], robot_pose[1])
+
+        self._mapped_pixels.clear()
+        for i in range(self._range_finder_params.actual_num_readings):
+            px, py = self.world2map(X_w[0][i], X_w[1][i])
+            if self._map[px, py] < 1:
+                self._map[px, py] += 0.01
+                self._mapped_pixels.append((px, py))            
+        

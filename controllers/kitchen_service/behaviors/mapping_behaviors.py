@@ -1,5 +1,6 @@
 import py_trees
 import numpy as np
+from py_trees.common import Status
 from libraries.mapping import RangeFinderMapper, MappingParams, RangeFinderParams
 
 
@@ -86,12 +87,16 @@ class MapWithRangeFinder(py_trees.behaviour.Behaviour):
 
         return py_trees.common.Status.RUNNING
 
+
     def terminate(self, new_status: py_trees.common.Status) -> None:
         """
         Save the cspace from the map generated so far.
         """
         cspace = self._mapper.compute_cspace()
         self._mapper.save_cspace(cspace)
+        if self._display:
+            self._mapper.display_cspace(cspace)
+
         self.logger.info(
             "%s.terminate()[%s->%s], Cspace saved."
             % (self.__class__.__name__, self.status, new_status)
