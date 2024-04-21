@@ -10,4 +10,4 @@ textFiles: -1
 globalOptionalRendering: LidarRaysPaths::LidarPointClouds::CoordinateSystem
 consoles: Console:All:All
 renderingDevicePerspectives: TIAGo:camera;0;0.325;0;0;1051;271;306;429;0
-renderingDevicePerspectives: TIAGo:display;1;1;0;0
+renderingDevicePerspectives: TIAGo:display;1;1.00333;0;0
