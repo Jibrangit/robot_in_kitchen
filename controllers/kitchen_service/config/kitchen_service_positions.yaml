@@ -18,3 +18,5 @@ lower_left_position:
   - { x: -1.6, y: -3.2 }
 sink_position:
   - { x: 0.75, y: 0.18 }
+jar1_robot_position:
+  - { x: 0.920239, y: -0.130041 }

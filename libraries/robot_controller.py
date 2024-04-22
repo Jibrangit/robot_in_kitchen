@@ -4,9 +4,6 @@ from typing import List, Tuple
 from dataclasses import dataclass
 import yaml 
 
-TRACKWIDTH = 0.054
-WHEEL_RADIUS = 0.0201
-
 
 class RobotDriveState(Enum):
     IDLE = 0
@@ -33,7 +30,7 @@ class Controller:
         self._waypoints = waypoints
         self._index = 0
         self._robot_state = RobotDriveState.DRIVE
-        self._MIN_POSITION_ERROR = 0.3  # metres
+        self._MIN_POSITION_ERROR = 0.2  # metres
         self._MIN_HEADING_ERROR = 0.1  # radians
         self._robot_params = robot_params
 

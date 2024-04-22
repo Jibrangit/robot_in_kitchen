@@ -22,6 +22,7 @@ from behaviors.publishers import PublishRobotOdometry, PublishRangeFinderData
 from behaviors.mapping_behaviors import CheckCspaceExists, MapWithRangeFinder
 from libraries.mapping import MappingParams, RangeFinderParams
 from behaviors.navigation_behaviors import NavigateThroughPoints
+from behaviors.planning_behaviors import GeneratePath
 
 
 def read_yaml_file(file_path):
@@ -80,10 +81,34 @@ def create_tree(**context) -> py_trees.behaviour.Behaviour:
         ],
     )
     get_configuration_space = create_mapping_tree()
+
+    kitchen_service_positions = read_yaml_file("config/kitchen_service_positions.yaml")
+    lower_left_position = get_coordinates(
+        kitchen_service_positions, "lower_left_position"
+    )[0]
+    jar1_robot_position = get_coordinates(
+        kitchen_service_positions, "jar1_robot_position"
+    )[0]
+
+    plan_to_lower_left = GeneratePath(
+        goal_position=lower_left_position, display=True, name="GetPathToLowerLeft"
+    )
+    navigate_to_lower_left = NavigateThroughPoints(
+        waypoints=None, name="NavigateToLowerLeft"
+    )
+    plan_to_jar1 = GeneratePath(
+        goal_position=jar1_robot_position, display=True, name="GetPathToJar1"
+    )
+    navigate_to_jar1 = NavigateThroughPoints(waypoints=None, name="NavigateToJar1")
+
     perform_tasks = py_trees.composites.Sequence(name="PerformTasks", memory=True)
     perform_tasks.add_children(
         [
             get_configuration_space,
+            plan_to_lower_left,
+            navigate_to_lower_left,
+            plan_to_jar1,
+            navigate_to_jar1,
         ]
     )
 
