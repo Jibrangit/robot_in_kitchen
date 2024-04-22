@@ -30,4 +30,12 @@ CounterClockwiseAroundTable [fillcolor=gray, fontcolor=black, fontsize=9, label=
 MoveAroundTable -> CounterClockwiseAroundTable;
 MapWithRangeFinder [fillcolor=gray, fontcolor=black, fontsize=9, label=MapWithRangeFinder, shape=ellipse, style=filled];
 MapThePlace -> MapWithRangeFinder;
+GetPathToLowerLeft [fillcolor=gray, fontcolor=black, fontsize=9, label=GetPathToLowerLeft, shape=ellipse, style=filled];
+PerformTasks -> GetPathToLowerLeft;
+NavigateToLowerLeft [fillcolor=gray, fontcolor=black, fontsize=9, label=NavigateToLowerLeft, shape=ellipse, style=filled];
+PerformTasks -> NavigateToLowerLeft;
+GetPathToJar1 [fillcolor=gray, fontcolor=black, fontsize=9, label=GetPathToJar1, shape=ellipse, style=filled];
+PerformTasks -> GetPathToJar1;
+NavigateToJar1 [fillcolor=gray, fontcolor=black, fontsize=9, label=NavigateToJar1, shape=ellipse, style=filled];
+PerformTasks -> NavigateToJar1;
 }
