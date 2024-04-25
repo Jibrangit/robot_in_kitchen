@@ -43,9 +43,9 @@
 <!-- PublishData -->
 <g id="node4" class="node">
 <title>PublishData</title>
-<polygon fill="gold" stroke="black" points="326.91,-364 184.82,-364 148.27,-308 290.36,-308 326.91,-364"/>
-<text text-anchor="middle" x="237.59" y="-338.8" font-family="Times,serif" font-size="9.00">PublishData</text>
-<text text-anchor="middle" x="237.59" y="-328.8" font-family="Times,serif" font-size="9.00">SuccessOnOne</text>
+<polygon fill="gold" stroke="black" points="327.99,-364 184.19,-364 147.2,-308 290.99,-308 327.99,-364"/>
+<text text-anchor="middle" x="237.59" y="-338.8" font-family="Times,serif" font-size="9.00">⚡ PublishData</text>
+<text text-anchor="middle" x="237.59" y="-328.8" font-family="Times,serif" font-size="9.00">SuccessOnAll</text>
 </g>
 <!-- ArrangeKitchen&#45;&gt;PublishData -->
 <g id="edge3" class="edge">

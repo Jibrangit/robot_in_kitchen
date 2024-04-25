@@ -22,7 +22,7 @@ class MappingParams:
     def __init__(self, filepath) -> None:
 
         with open(filepath, "r") as mapping_params_file:
-            try: 
+            try:
                 mapping_params = yaml.safe_load(mapping_params_file)
 
                 self.map_width = mapping_params["map_width"]
@@ -159,8 +159,10 @@ class RangeFinderMapper(Mapper):
         )
 
         return w_T_r @ X_i
-    
-    def reduce_probability_for_pixels_in_line_of_sight(self, px_robot, py_robot, px, py):
+
+    def reduce_probability_for_pixels_in_line_of_sight(
+        self, px_robot, py_robot, px, py
+    ):
         if self._map[px, py] > 0.1:
             laser_line_coordinates = plot_line(px_robot, py_robot, px, py)
             for coordinate in laser_line_coordinates[1:-1]:
@@ -179,7 +181,6 @@ class RangeFinderMapper(Mapper):
         self._mapped_pixels.clear()
         for i in range(self._range_finder_params.actual_num_readings):
             px, py = self.world2map(X_w[0][i], X_w[1][i])
-            if self._map[px, py] < 1:
+            if self._is_index_in_bounds(px, py) and self._map[px, py] < 1:
                 self._map[px, py] += 0.01
-                self._mapped_pixels.append((px, py))            
-        
+                self._mapped_pixels.append((px, py))

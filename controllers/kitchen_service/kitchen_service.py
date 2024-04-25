@@ -35,15 +35,17 @@ def get_coordinates(data, key):
     return [(entry["x"], entry["y"]) for entry in data[key]]
 
 
-def create_mapping_tree() -> py_trees.behaviour.Behaviour:
+def create_mapping_tree(display=False) -> py_trees.behaviour.Behaviour:
 
     kitchen_service_positions = read_yaml_file("config/kitchen_service_positions.yaml")
     clockwise_around_table = NavigateThroughPoints(
         get_coordinates(kitchen_service_positions, "clockwise_waypoints"),
+        display=display,
         name="ClockwiseAroundTable",
     )
     counter_clockwise_around_table = NavigateThroughPoints(
         get_coordinates(kitchen_service_positions, "counter_clockwise_waypoints"),
+        display=display,
         name="CounterClockwiseAroundTable",
     )
     move_around_table = py_trees.composites.Sequence(
@@ -68,19 +70,20 @@ def create_mapping_tree() -> py_trees.behaviour.Behaviour:
 
 
 def create_tree(**context) -> py_trees.behaviour.Behaviour:
+    display = False
     blackboard_context = BlackboardContext(name="BlackboardContext", **context)
 
     publish_odometry = PublishRobotOdometry()
     publish_range_finder_data = PublishRangeFinderData()
     publish_data = py_trees.composites.Parallel(
         name="PublishData",
-        policy=py_trees.common.ParallelPolicy.SuccessOnOne(),
+        policy=py_trees.common.ParallelPolicy.SuccessOnAll(),
         children=[
             publish_odometry,
             publish_range_finder_data,
         ],
     )
-    get_configuration_space = create_mapping_tree()
+    get_configuration_space = create_mapping_tree(display=display)
 
     kitchen_service_positions = read_yaml_file("config/kitchen_service_positions.yaml")
     lower_left_position = get_coordinates(
@@ -91,15 +94,15 @@ def create_tree(**context) -> py_trees.behaviour.Behaviour:
     )[0]
 
     plan_to_lower_left = GeneratePath(
-        goal_position=lower_left_position, display=True, name="GetPathToLowerLeft"
+        goal_position=lower_left_position, display=display, name="GetPathToLowerLeft"
     )
     navigate_to_lower_left = NavigateThroughPoints(
-        waypoints=None, name="NavigateToLowerLeft"
+        waypoints=None, display=False, name="NavigateToLowerLeft"
     )
     plan_to_jar1 = GeneratePath(
-        goal_position=jar1_robot_position, display=True, name="GetPathToJar1"
+        goal_position=jar1_robot_position, display=display, name="GetPathToJar1"
     )
-    navigate_to_jar1 = NavigateThroughPoints(waypoints=None, name="NavigateToJar1")
+    navigate_to_jar1 = NavigateThroughPoints(waypoints=None, display=False, name="NavigateToJar1")
 
     perform_tasks = py_trees.composites.Sequence(name="PerformTasks", memory=True)
     perform_tasks.add_children(

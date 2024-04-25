@@ -13,10 +13,10 @@ class PublishRobotOdometry(py_trees.behaviour.Behaviour):
             key="timestep", access=py_trees.common.Access.READ
         )
         self._blackboard.register_key(
-            key="gps_handle", access=py_trees.common.Access.READ
+            key="gps_handle", access=py_trees.common.Access.WRITE
         )
         self._blackboard.register_key(
-            key="compass_handle", access=py_trees.common.Access.READ
+            key="compass_handle", access=py_trees.common.Access.WRITE
         )
         self._blackboard.register_key(
             key="se2_pose", access=py_trees.common.Access.WRITE
@@ -30,12 +30,15 @@ class PublishRobotOdometry(py_trees.behaviour.Behaviour):
         self._gps_handle = self._blackboard.gps_handle
         self._compass_handle = self._blackboard.compass_handle
 
-    def initialise(self) -> None:
         self._gps_handle.enable(self._timestep)
         self._compass_handle.enable(self._timestep)
 
-    def update(self) -> py_trees.common.Status:
+    def initialise(self) -> None:
+        self.logger.info("%s.initialise()" % (self.__class__.__name__))
+        self._set_odometry()
 
+    
+    def _set_odometry(self):
         xw = self._gps_handle.getValues()[0]
         yw = self._gps_handle.getValues()[1]
         theta = np.arctan2(
@@ -44,6 +47,8 @@ class PublishRobotOdometry(py_trees.behaviour.Behaviour):
 
         self._blackboard.set(name="se2_pose", value=(xw, yw, theta))
 
+    def update(self) -> py_trees.common.Status:
+        self._set_odometry()
         return py_trees.common.Status.RUNNING
 
 
@@ -83,14 +88,12 @@ class PublishRangeFinderData(py_trees.behaviour.Behaviour):
 
         self._range_finder.enable(self._timestep)
         self._range_finder.enablePointCloud()
-
-    # def initialise(self) -> None:
         
 
     def update(self) -> py_trees.common.Status:
 
         ranges = self._range_finder.getRangeImage()
-        ranges[ranges == np.inf] = 100
+        ranges = [100 if r == np.inf else r for r in ranges]
         ranges = ranges[
             self._range_finder_params.first_idx : self._range_finder_params.last_idx
         ]

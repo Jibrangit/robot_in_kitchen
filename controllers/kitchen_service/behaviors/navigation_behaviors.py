@@ -2,6 +2,7 @@ import py_trees
 from typing import Union
 import time
 import numpy as np
+import matplotlib.pyplot as plt
 
 from libraries.robot_controller import (
     Controller,
@@ -10,6 +11,7 @@ from libraries.robot_controller import (
     initialize_robot_params_from_yaml,
 )
 
+from libraries.mapping import Mapper, MappingParams
 
 BALL_DIAMETER = 0.0399
 
@@ -23,6 +25,7 @@ class NavigateThroughPoints(py_trees.behaviour.Behaviour):
     def __init__(
         self,
         waypoints: Union[list, None],
+        display: False,
         name: str = "NavigateThroughPoints",
     ):
         super(NavigateThroughPoints, self).__init__(name)
@@ -44,6 +47,10 @@ class NavigateThroughPoints(py_trees.behaviour.Behaviour):
         self._blackboard.register_key(
             key="se2_pose", access=py_trees.common.Access.READ
         )
+
+        self._display = display 
+        if self._display:
+            self._mapper = Mapper(MappingParams("config/mapping_params.yaml"))
 
     def setup(self, **kwargs: int) -> None:
 
@@ -87,6 +94,11 @@ class NavigateThroughPoints(py_trees.behaviour.Behaviour):
 
             vl, vr = self._controller.get_input_vels((xw, yw, theta))
             self._robot_handle.set_motors_vels(vl, vr)
+
+            if self._display:
+                px, py = self._mapper.world2map(xw, yw)
+                plt.plot(py, px, "g*")
+                plt.pause(0.00000001)
             return py_trees.common.Status.RUNNING
 
     def terminate(self, new_status: py_trees.common.Status) -> None:

@@ -8,7 +8,7 @@ BlackboardContext [fillcolor=gray, fontcolor=black, fontsize=9, label=Blackboard
 KitchenService -> BlackboardContext;
 ArrangeKitchen [fillcolor=gold, fontcolor=black, fontsize=9, label="ArrangeKitchen\nSuccessOnOne", shape=parallelogram, style=filled];
 KitchenService -> ArrangeKitchen;
-PublishData [fillcolor=gold, fontcolor=black, fontsize=9, label="PublishData\nSuccessOnOne", shape=parallelogram, style=filled];
+PublishData [fillcolor=gold, fontcolor=black, fontsize=9, label="⚡ PublishData\nSuccessOnAll", shape=parallelogram, style=filled];
 ArrangeKitchen -> PublishData;
 PublishRobotOdometry [fillcolor=gray, fontcolor=black, fontsize=9, label=PublishRobotOdometry, shape=ellipse, style=filled];
 PublishData -> PublishRobotOdometry;
