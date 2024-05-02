@@ -70,3 +70,6 @@ def axis_angle_and_position_to_transformation_matrix(axis_angle_vector, position
     transform[2, 3] = positions[2]
 
     return transform
+
+def rotation_matrix_to_rot_vec(rot_matrix: np.ndarray):
+    return R.from_matrix(rot_matrix).as_rotvec()
