@@ -71,5 +71,44 @@ def axis_angle_and_position_to_transformation_matrix(axis_angle_vector, position
 
     return transform
 
+
 def rotation_matrix_to_rot_vec(rot_matrix: np.ndarray):
     return R.from_matrix(rot_matrix).as_rotvec()
+
+
+def transformation_matrix_from_rot_axis_and_translation(
+    rot_angle: float, rot_axis: str, trans_vec: tuple = [0, 0, 0]
+):
+    if rot_axis == "x":
+        return np.array(
+            [
+                [1, 0, 0, trans_vec[0]],
+                [0, np.cos(rot_angle), -np.sin(rot_angle), trans_vec[1]],
+                [0, np.sin(rot_angle), np.cos(rot_angle), trans_vec[2]],
+                [0, 0, 0, 1],
+            ]
+        )
+    elif rot_axis == "y":
+        return np.array(
+            [
+                [np.cos(rot_angle), 0, np.sin(rot_angle), trans_vec[0]],
+                [0, 1, 0, trans_vec[1]],
+                [-np.sin(rot_angle), 0, np.cos(rot_angle), trans_vec[2]],
+                [0, 0, 0, 1],
+            ]
+        )
+    elif rot_axis == "z":
+        return np.array(
+            [
+                [np.cos(rot_angle), -np.sin(rot_angle), 0, trans_vec[0]],
+                [np.sin(rot_angle), np.cos(rot_angle), 0, trans_vec[1]],
+                [0, 0, 1, trans_vec[2]],
+                [0, 0, 0, 1],
+            ]
+        )
+    else:
+        raise ValueError("Invalid rotation axis. Use 'x', 'y', or 'z'.")
+
+
+def get_translation_matrix(tx, ty, tz):
+    return np.array([[1, 0, 0, tx], [0, 1, 0, ty], [0, 0, 1, tz], [0, 0, 0, 1]])
