@@ -48,6 +48,10 @@ def main():
     arm_1_handle = robot.getFromDef("ARM_1")
     arm_2_handle = robot.getFromDef("ARM_2")
     arm_3_handle = robot.getFromDef("ARM_3")
+    arm_4_handle = robot.getFromDef("ARM_4")
+    arm_5_handle = robot.getFromDef("ARM_5")
+    arm_6_handle = robot.getFromDef("ARM_6")
+    wrist_handle = robot.getFromDef("WRIST")
 
     TORSO_LIFT_INITIAL_POSITION = 0.6
     ARM_1_INITIAL_POSITION = 0.07
@@ -88,6 +92,10 @@ def main():
         arm1_pose = convert_to_2d_matrix(arm_1_handle.getPose())
         arm2_pose = convert_to_2d_matrix(arm_2_handle.getPose())
         arm3_pose = convert_to_2d_matrix(arm_3_handle.getPose())
+        arm4_pose = convert_to_2d_matrix(arm_4_handle.getPose())
+        arm5_pose = convert_to_2d_matrix(arm_5_handle.getPose())
+        arm6_pose = convert_to_2d_matrix(arm_6_handle.getPose())
+        wrist_pose = convert_to_2d_matrix(wrist_handle.getPose())
 
         joint_positions = robot_handle.get_joint_positions()
 
@@ -127,7 +135,7 @@ def main():
             @ transformation_matrix_from_rot_axis_and_translation(
                 rot_angle=-joint_positions["arm_2_joint"],
                 rot_axis="y",
-                trans_vec=[0.125, 0, -0.0015]
+                trans_vec=[0.125, 0.018, -0.0311],
             )
             @ axis_angle_and_position_to_transformation_matrix(
                 axis_angle_vector=[1, 0, 0, np.pi / 2], positions=[0, 0, 0]
@@ -139,14 +147,66 @@ def main():
             @ transformation_matrix_from_rot_axis_and_translation(
                 rot_angle=-joint_positions["arm_3_joint"],
                 rot_axis="x",
-                trans_vec=[0.0872, 0, -0.0015]
+                trans_vec=[0.0872, 0, -0.0015],
             )
             @ axis_angle_and_position_to_transformation_matrix(
-                axis_angle_vector=[0, 0.707, 0.707, np.pi], positions=[0, 0, 0]
+                axis_angle_vector=[0, 0.707, -0.707, np.pi], positions=[0, 0, 0]
             )
         )
 
-        print_error(arm3_pose, arm_3_pose_kinematics, "arm_3")
+        arm_4_pose_kinematics = (
+            arm_3_pose_kinematics
+            @ transformation_matrix_from_rot_axis_and_translation(
+                rot_angle=joint_positions["arm_4_joint"],
+                rot_axis="y",
+                trans_vec=[-0.02, -0.027, -0.222],
+            )
+            @ axis_angle_and_position_to_transformation_matrix(
+                axis_angle_vector=[-0.57734, -0.57734, -0.57734, 2.09437],
+                positions=[0, 0, 0],
+            )
+        )
+
+        arm_5_pose_kinematics = (
+            arm_4_pose_kinematics
+            @ transformation_matrix_from_rot_axis_and_translation(
+                rot_angle=-joint_positions["arm_5_joint"],
+                rot_axis="x",
+                trans_vec=[-0.162, 0.02, 0.027],
+            )
+            @ axis_angle_and_position_to_transformation_matrix(
+                axis_angle_vector=[0, -1, 0, np.pi / 2],
+                positions=[0, 0, 0],
+            )
+        )
+
+        arm_6_pose_kinematics = (
+            arm_5_pose_kinematics
+            @ transformation_matrix_from_rot_axis_and_translation(
+                rot_angle=joint_positions["arm_6_joint"],
+                rot_axis="y",
+                trans_vec=[0, 0, 0.15],
+            )
+            @ axis_angle_and_position_to_transformation_matrix(
+                axis_angle_vector=[-0.577351, -0.577351, -0.577351, 2.0944],
+                positions=[0, 0, 0],
+            )
+        )
+
+        wrist_pose_kinematics = (
+            arm_6_pose_kinematics
+            @ transformation_matrix_from_rot_axis_and_translation(
+                rot_angle=joint_positions["arm_7_joint"],
+                rot_axis="x",
+                trans_vec=[0.055, 0, 0],
+            )
+            @ axis_angle_and_position_to_transformation_matrix(
+                axis_angle_vector=[0.577351, 0.577351, 0.577351, 2.0944],
+                positions=[0, 0, 0],
+            )
+        )
+
+        print_error(wrist_pose, wrist_pose_kinematics, "wrist")
 
 
 if __name__ == "__main__":
