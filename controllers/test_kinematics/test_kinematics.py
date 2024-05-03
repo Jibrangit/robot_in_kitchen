@@ -52,6 +52,8 @@ def main():
     arm_5_handle = robot.getFromDef("ARM_5")
     arm_6_handle = robot.getFromDef("ARM_6")
     wrist_handle = robot.getFromDef("WRIST")
+    left_gripper_handle = robot.getFromDef("LEFT_GRIPPER")
+    right_gripper_handle = robot.getFromDef("RIGHT_GRIPPER")
 
     TORSO_LIFT_INITIAL_POSITION = 0.6
     ARM_1_INITIAL_POSITION = 0.07
@@ -82,6 +84,18 @@ def main():
         ): axis_angle_and_position_to_transformation_matrix(
             [1, 0, 0, 0], [0.125, 0.018, -0.0311]
         ),
+        ("WRIST", "WRIST_CONNECTOR"): axis_angle_and_position_to_transformation_matrix(
+            [-0.57735, -0.57735, -0.57735, 2.0944], [0, 0, 0.012725]
+        ),
+        (
+            "WRIST_CONNECTOR",
+            "tiago_hand",
+        ): axis_angle_and_position_to_transformation_matrix(
+            [0, 0, 1, -np.pi / 2], [0, 0, 0]
+        )
+        @ axis_angle_and_position_to_transformation_matrix(
+            [0.57735, 0.57735, -0.57735, 2.0944], [0, 0.016, 0]
+        ),
     }
 
     while robot.step(timestep) != -1:
@@ -96,6 +110,8 @@ def main():
         arm5_pose = convert_to_2d_matrix(arm_5_handle.getPose())
         arm6_pose = convert_to_2d_matrix(arm_6_handle.getPose())
         wrist_pose = convert_to_2d_matrix(wrist_handle.getPose())
+        left_gripper_pose = convert_to_2d_matrix(left_gripper_handle.getPose())
+        right_gripper_pose = convert_to_2d_matrix(right_gripper_handle.getPose())
 
         joint_positions = robot_handle.get_joint_positions()
 
@@ -206,7 +222,45 @@ def main():
             )
         )
 
-        print_error(wrist_pose, wrist_pose_kinematics, "wrist")
+        tiago_hand_kinematics = (
+            wrist_pose_kinematics
+            @ frames[("WRIST", "WRIST_CONNECTOR")]
+            @ frames[
+                (
+                    "WRIST_CONNECTOR",
+                    "tiago_hand",
+                )
+            ]
+        )
+
+        left_gripper_kinematics = (
+            tiago_hand_kinematics
+            @ get_translation_matrix(
+                -joint_positions["gripper_left_finger_joint"], 0, 0
+            )
+            @ axis_angle_and_position_to_transformation_matrix(
+                axis_angle_vector=[0, 0, -1, np.pi], positions=[0, 0, 0]
+            )
+        )
+
+        right_gripper_kinematics = (
+            tiago_hand_kinematics
+            @ get_translation_matrix(
+                joint_positions["gripper_right_finger_joint"], 0, 0
+            )
+            @ axis_angle_and_position_to_transformation_matrix(
+                axis_angle_vector=[0.973, -0.232, -0.00449042, 0], positions=[0, 0, 0]
+            )
+        )
+
+        left_gripper_base = left_gripper_kinematics @ get_translation_matrix(
+            0.0049, 0.0153, -0.1208
+        )
+        right_gripper_base = right_gripper_kinematics @ get_translation_matrix(
+            0.0049, 0.0153, -0.1208
+        )
+        
+        print_error(right_gripper_pose, right_gripper_kinematics, "right_gripper")
 
 
 if __name__ == "__main__":
