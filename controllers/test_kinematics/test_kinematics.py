@@ -54,10 +54,6 @@ def main():
     left_gripper_handle = robot.getFromDef("LEFT_GRIPPER")
     right_gripper_handle = robot.getFromDef("RIGHT_GRIPPER")
 
-    TORSO_LIFT_INITIAL_POSITION = 0.6
-    ARM_1_INITIAL_POSITION = 0.07
-    ARM_2_INITIAL_POSITION = np.pi / 2
-
     tiago_kinematics = TiagoKinematics()
 
     while robot.step(timestep) != -1:
@@ -77,8 +73,66 @@ def main():
 
         joint_positions = robot_handle.get_joint_positions()
 
-        torso_pose_kinematics = robot_pose @ tiago_kinematics.transform_tree.get_pose("TIAGO_ROBOT", "TORSO")
-        print_error(torso_pose, torso_pose_kinematics, "TORSO")
+        torso_pose_kinematics = robot_pose @ tiago_kinematics.transform_tree.get_pose(
+            "TIAGO_ROBOT", "TORSO"
+        )
+
+        # Update transforms with joint positions
+        tiago_kinematics.transform_tree.update_joint_controlled_transform(
+            "TORSO_LIFT", joint_positions["torso_lift_joint"]
+        )
+        tiago_kinematics.transform_tree.update_joint_controlled_transform(
+            "ARM_1", joint_positions["arm_1_joint"]
+        )
+        tiago_kinematics.transform_tree.update_joint_controlled_transform(
+            "ARM_2", joint_positions["arm_2_joint"]
+        )
+        tiago_kinematics.transform_tree.update_joint_controlled_transform(
+            "ARM_3", joint_positions["arm_3_joint"]
+        )
+        tiago_kinematics.transform_tree.update_joint_controlled_transform(
+            "ARM_4", joint_positions["arm_4_joint"]
+        )
+        tiago_kinematics.transform_tree.update_joint_controlled_transform(
+            "ARM_5", joint_positions["arm_5_joint"]
+        )
+        tiago_kinematics.transform_tree.update_joint_controlled_transform(
+            "ARM_6", joint_positions["arm_6_joint"]
+        )
+        tiago_kinematics.transform_tree.update_joint_controlled_transform(
+            "ARM_7", joint_positions["arm_7_joint"]
+        )
+
+        torso_lift_pose_kinematics = (
+            robot_pose
+            @ tiago_kinematics.transform_tree.get_pose("TIAGO_ROBOT", "TORSO_LIFT")
+        )
+        arm1_pose_kinematics = robot_pose @ tiago_kinematics.transform_tree.get_pose(
+            "TIAGO_ROBOT", "ARM_1"
+        )
+        arm2_pose_kinematics = robot_pose @ tiago_kinematics.transform_tree.get_pose(
+            "TIAGO_ROBOT", "ARM_2"
+        )
+        arm3_pose_kinematics = robot_pose @ tiago_kinematics.transform_tree.get_pose(
+            "TIAGO_ROBOT", "ARM_3"
+        )
+        arm4_pose_kinematics = robot_pose @ tiago_kinematics.transform_tree.get_pose(
+            "TIAGO_ROBOT", "ARM_4"
+        )
+        arm5_pose_kinematics = robot_pose @ tiago_kinematics.transform_tree.get_pose(
+            "TIAGO_ROBOT", "ARM_5"
+        )
+        arm6_pose_kinematics = robot_pose @ tiago_kinematics.transform_tree.get_pose(
+            "TIAGO_ROBOT", "ARM_6"
+        )
+        arm7_pose_kinematics = robot_pose @ tiago_kinematics.transform_tree.get_pose(
+            "TIAGO_ROBOT", "ARM_7"
+        )
+        wrist_pose_kinematics = robot_pose @ tiago_kinematics.transform_tree.get_pose(
+            "TIAGO_ROBOT", "WRIST"
+        )
+
+        print_error(wrist_pose, wrist_pose_kinematics, "WRIST")
 
 
 if __name__ == "__main__":

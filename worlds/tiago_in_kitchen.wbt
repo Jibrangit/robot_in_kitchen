@@ -46,8 +46,8 @@ WorldInfo {
 }
 Viewpoint {
   fieldOfView 1.1
-  orientation 0.5006381887411505 -0.48556610146642204 -0.7166498204009266 4.3564122706510275
-  position 0.8657464179826455 -4.735100959689779 12.163751314101775
+  orientation -0.3197887820749443 -0.3236987570682304 0.8904797861442484 4.60874167010963
+  position 0.19090680015257425 -0.6130763629779219 2.603905155325653
   exposure 0.7999999999999999
 }
 TexturedBackground {
@@ -1257,7 +1257,7 @@ DEF TIAGO_ROBOT Robot {
                                       ]
                                       endPoint DEF ARM_2 Solid {
                                         translation 0.125 0.018 -0.031
-                                        rotation 0.9999999954458956 6.748398174870805e-05 -6.748422963203646e-05 1.570800004554059
+                                        rotation 0.9999999954458956 6.748398174870844e-05 -6.748422963203646e-05 1.570800004554059
                                         children [
                                           DEF ARM_2_SH1 Shape {
                                             appearance PBRAppearance {
@@ -1308,7 +1308,7 @@ DEF TIAGO_ROBOT Robot {
                                             ]
                                             endPoint DEF ARM_3 Solid {
                                               translation 0.0872 0 -0.0015
-                                              rotation 6.123502413031808e-05 0.7070652786266494 -0.7071482786593564 3.14158
+                                              rotation 6.123502413031848e-05 0.7070652786266494 -0.7071482786593564 3.14158
                                               children [
                                                 DEF ARM_3_SH1 Shape {
                                                   appearance PBRAppearance {
@@ -1542,7 +1542,7 @@ DEF TIAGO_ROBOT Robot {
                                                         ]
                                                         endPoint DEF ARM_5 Solid {
                                                           translation -0.162 0.02 0.027
-                                                          rotation -2.57769841213417e-06 -0.9999999999933556 2.5777078797813915e-06 1.570800000006605
+                                                          rotation -2.5776984121341697e-06 -0.9999999999933554 2.577707879781391e-06 1.570800000006605
                                                           children [
                                                             DEF ARM_5_SH1 Shape {
                                                               appearance PBRAppearance {
@@ -4241,8 +4241,8 @@ DEF TIAGO_ROBOT Robot {
                             }
                           ]
                           endPoint DEF HEAD Solid {
-                            translation 0.005000023019834918 -4.255066543556929e-08 0.09799481092593798
-                            rotation 0.9999999999999999 7.423790170765182e-23 4.231560397336154e-21 1.5878400249442781
+                            translation 0.005000023019834918 -4.255066543556891e-08 0.09799481092593798
+                            rotation 0.9999999999999999 7.423790170765182e-23 6.384459546858056e-21 1.5878400249442781
                             children [
                               DEF CAMERA Pose {
                                 translation 0.107 0.0802 0
@@ -5112,7 +5112,7 @@ DEF TIAGO_ROBOT Robot {
             }
             endPoint DEF SMALL_WHEEL Solid {
               translation -0.016 0 -0.04
-              rotation -0.9999999999095636 -9.5097961268307e-06 -9.509831060877786e-06 1.5708000000904085
+              rotation -0.9999999999095636 -9.509796126830642e-06 -9.509831060877786e-06 1.5708000000904085
               children [
                 DEF SMALL_WHEEL_SHAPE Shape {
                   appearance PBRAppearance {
@@ -5233,7 +5233,7 @@ DEF TIAGO_ROBOT Robot {
             }
             endPoint DEF SMALL_WHEEL Solid {
               translation -0.016 0 -0.04
-              rotation -0.9999999414819128 0.00024190467254084588 0.00024190556111265457 1.570800058518058
+              rotation -0.9999999414819128 0.00024190467254084778 0.00024190556111265457 1.570800058518058
               children [
                 DEF SMALL_WHEEL_SHAPE Shape {
                   appearance PBRAppearance {
@@ -5354,7 +5354,7 @@ DEF TIAGO_ROBOT Robot {
             }
             endPoint DEF SMALL_WHEEL_JOINT Solid {
               translation -0.016 0 -0.04
-              rotation -0.9999999997537788 -1.5691409732994674e-05 -1.5691467366626834e-05 1.5708000002461608
+              rotation -0.9999999997537786 -1.5691409732994755e-05 -1.569146736662683e-05 1.5708000002461506
               children [
                 DEF SMALL_WHEEL_SHAPE Shape {
                   appearance PBRAppearance {
@@ -5475,7 +5475,7 @@ DEF TIAGO_ROBOT Robot {
             }
             endPoint DEF SMALL_WHEEL Solid {
               translation -0.016 0 -0.04
-              rotation -0.9999999438832153 0.00023688937713886278 0.00023689024728820024 1.5708000561167568
+              rotation -0.9999999438832153 0.00023688937713886167 0.00023689024728820024 1.5708000561167568
               children [
                 DEF SMALL_WHEEL_SHAPE Shape {
                   appearance PBRAppearance {

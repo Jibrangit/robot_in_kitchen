@@ -20,7 +20,7 @@ class JointParams:
     joint_type: str
     joint_axis: str
     joint_initial_position: float = 0.0
-    anchor: tuple[float] = None
+    endpoint_offset: tuple[float] = (0, 0, 1, 0)
 
 
 @dataclass
@@ -46,24 +46,29 @@ class DynamicTransform(Transform):
         self._joint_type = joint_params.joint_type
         self._joint_axis = joint_params.joint_axis
         self._joint_initial_position = joint_params.joint_initial_position
-        self._anchor = joint_params.anchor
+        self._endpoint_offset = joint_params.endpoint_offset
 
     def _get_transform_with_revolute_joint(self, joint_position: float):
         if self._joint_axis == "x":
-            return np.array(
+            transform = np.array(
                 [
-                    [1, 0, 0, self._anchor[0]],
+                    [
+                        1,
+                        0,
+                        0,
+                        0,
+                    ],
                     [
                         0,
                         np.cos(joint_position),
                         -np.sin(joint_position),
-                        self._anchor[1],
+                        0,
                     ],
                     [
                         0,
                         np.sin(joint_position),
                         np.cos(joint_position),
-                        self._anchor[2],
+                        0,
                     ],
                     [0, 0, 0, 1],
                 ]
@@ -71,39 +76,44 @@ class DynamicTransform(Transform):
 
         elif self._joint_axis == "-x":
             joint_position = -joint_position
-            return np.array(
+            transform = np.array(
                 [
-                    [1, 0, 0, self._anchor[0]],
+                    [
+                        1,
+                        0,
+                        0,
+                        0,
+                    ],
                     [
                         0,
                         np.cos(joint_position),
                         -np.sin(joint_position),
-                        self._anchor[1],
+                        0,
                     ],
                     [
                         0,
                         np.sin(joint_position),
                         np.cos(joint_position),
-                        self._anchor[2],
+                        0,
                     ],
                     [0, 0, 0, 1],
                 ]
             )
         elif self._joint_axis == "y":
-            return np.array(
+            transform = np.array(
                 [
                     [
                         np.cos(joint_position),
                         0,
                         np.sin(joint_position),
-                        self._anchor[0],
+                        0,
                     ],
-                    [0, 1, 0, self._anchor[1]],
+                    [0, 1, 0, 0],
                     [
                         -np.sin(joint_position),
                         0,
                         np.cos(joint_position),
-                        self._anchor[2],
+                        0,
                     ],
                     [0, 0, 0, 1],
                 ]
@@ -111,60 +121,60 @@ class DynamicTransform(Transform):
 
         elif self._joint_axis == "-y":
             joint_position = -joint_position
-            return np.array(
+            transform = np.array(
                 [
                     [
                         np.cos(joint_position),
                         0,
                         np.sin(joint_position),
-                        self._anchor[0],
+                        0,
                     ],
-                    [0, 1, 0, self._anchor[1]],
+                    [0, 1, 0, 0],
                     [
                         -np.sin(joint_position),
                         0,
                         np.cos(joint_position),
-                        self._anchor[2],
+                        0,
                     ],
                     [0, 0, 0, 1],
                 ]
             )
         elif self._joint_axis == "z":
-            return np.array(
+            transform = np.array(
                 [
                     [
                         np.cos(joint_position),
                         -np.sin(joint_position),
                         0,
-                        self._anchor[0],
+                        0,
                     ],
                     [
                         np.sin(joint_position),
                         np.cos(joint_position),
                         0,
-                        self._anchor[1],
+                        0,
                     ],
-                    [0, 0, 1, self._anchor[2]],
+                    [0, 0, 1, 0],
                     [0, 0, 0, 1],
                 ]
             )
         elif self._joint_axis == "-z":
             joint_position = -joint_position
-            return np.array(
+            transform = np.array(
                 [
                     [
                         np.cos(joint_position),
                         -np.sin(joint_position),
                         0,
-                        self._anchor[0],
+                        0,
                     ],
                     [
                         np.sin(joint_position),
                         np.cos(joint_position),
                         0,
-                        self._anchor[1],
+                        0,
                     ],
-                    [0, 0, 1, self._anchor[2]],
+                    [0, 0, 1, 0],
                     [0, 0, 0, 1],
                 ]
             )
@@ -172,6 +182,12 @@ class DynamicTransform(Transform):
             raise ValueError(
                 "Invalid rotation axis. Use 'x', 'y', 'z', '-x', '-y' or '-z'."
             )
+
+        transform = transform @ axis_angle_and_position_to_transformation_matrix(
+            self._endpoint_offset, [0, 0, 0]
+        )
+
+        return transform
 
     def _get_transform_with_prismatic_joint(self, joint_position: float):
         translation_vector = [0, 0, 0]
