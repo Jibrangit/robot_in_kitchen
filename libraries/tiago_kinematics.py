@@ -224,53 +224,67 @@ class TiagoKinematics:
                 ),
             ),
             Transform("ARM_7", "WRIST", np.eye(4)),
-            # Transform(
-            #     "WRIST",
-            #     "WRIST_CONNECTOR",
-            #     axis_angle_and_position_to_transformation_matrix(
-            #         [-0.57735, -0.57735, -0.57735, 2.0944], [0, 0, 0.012725]
-            #     ),
-            # ),
-            # Transform(
-            #     "WRIST_CONNECTOR",
-            #     "TIAGO_HAND",
-            #     axis_angle_and_position_to_transformation_matrix(
-            #         [0, 0, 1, -np.pi / 2], [0, 0, 0]
-            #     )
-            #     @ axis_angle_and_position_to_transformation_matrix(
-            #         [0.57735, 0.57735, -0.57735, 2.0944], [0, 0.016, 0]
-            #     ),
-            # ),
-            # Transform(
-            #     parent_frame="TIAGO_HAND", child_frame="GRIPPER_LEFT_FINGER_JOINT"
-            # ),
-            # Transform(
-            #     parent_frame="TIAGO_HAND", child_frame="GRIPPER_RIGHT_FINGER_JOINT"
-            # ),
-            # DynamicTransform(
-            #     parent_frame="GRIPPER_LEFT_FINGER_JOINT",
-            #     child_frame="GRIPPER_LEFT_FINGER",
-            # ),
-            # DynamicTransform(
-            #     parent_frame="GRIPPER_RIGHT_FINGER_JOINT",
-            #     child_frame="GRIPPER_RIGHT_FINGER",
-            # ),
-            # Transform(
-            #     parent_frame="GRIPPER_LEFT_FINGER",
-            #     child_frame="GRIPPER_LEFT_FINGER_ROBOT_END",
-            # ),
-            # Transform(
-            #     parent_frame="GRIPPER_RIGHT_FINGER",
-            #     child_frame="GRIPPER_RIGHT_FINGER_ROBOT_END",
-            # ),
-            # Transform(
-            #     parent_frame="GRIPPER_LEFT_FINGER_ROBOT_END",
-            #     child_frame="GRIPPER_LEFT_FINGER_HOLDING_END",
-            # ),
-            # Transform(
-            #     parent_frame="GRIPPER_RIGHT_FINGER_ROBOT_END",
-            #     child_frame="GRIPPER_RIGHT_FINGER_HOLDING_END",
-            # ),
+            Transform(
+                "WRIST",
+                "WRIST_CONNECTOR",
+                axis_angle_and_position_to_transformation_matrix(
+                    [-0.57735, -0.57735, -0.57735, 2.0944], [0, 0, 0.012725]
+                ),
+            ),
+            Transform(
+                "WRIST_CONNECTOR",
+                "TIAGO_HAND",
+                axis_angle_and_position_to_transformation_matrix(
+                    [0, 0, 1, -np.pi / 2], [0, 0, 0]
+                )
+                @ axis_angle_and_position_to_transformation_matrix(
+                    [0.57735, 0.57735, -0.57735, 2.0944], [0, 0.016, 0]
+                ),
+            ),
+            Transform(
+                "TIAGO_HAND",
+                "LEFT_GRIPPER_JOINT",
+                axis_angle_and_position_to_transformation_matrix(
+                    [0, 0, 1, np.pi], [0, 0, 0]
+                ),
+            ),
+            Transform(
+                "TIAGO_HAND",
+                "RIGHT_GRIPPER_JOINT",
+                axis_angle_and_position_to_transformation_matrix(
+                    [0, 0, -1, 0], [0, 0, 0]
+                ),
+            ),
+            DynamicTransform(
+                parent_frame="LEFT_GRIPPER_JOINT",
+                child_frame="LEFT_GRIPPER",
+                transformation=get_translation_matrix(0, 0, 0),
+                joint_params=JointParams(
+                    "gripper_left_finger_joint",
+                    joint_type="prismatic",
+                    joint_axis="-x",
+                ),
+            ),
+            DynamicTransform(
+                parent_frame="RIGHT_GRIPPER_JOINT",
+                child_frame="RIGHT_GRIPPER",
+                transformation=get_translation_matrix(0, 0, 0),
+                joint_params=JointParams(
+                    joint_name="gripper_right_finger_joint",
+                    joint_type="prismatic",
+                    joint_axis="x",
+                ),
+            ),
+            Transform(
+                "LEFT_GRIPPER",
+                "GRIPPER_LEFT_FINGER_MIDPOINT",
+                get_translation_matrix(0.004, 0, -0.1741),
+            ),
+            Transform(
+                "RIGHT_GRIPPER",
+                "GRIPPER_RIGHT_FINGER_MIDPOINT",
+                get_translation_matrix(0.004, 0, -0.1741),
+            ),
         ]
 
         self.transform_tree = TransformTree(
