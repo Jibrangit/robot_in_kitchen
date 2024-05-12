@@ -39,6 +39,7 @@ class DynamicTransform(Transform):
         joint_params: JointParams,
     ):
         super().__init__(parent_frame, child_frame, transformation)
+        self._joint_params = joint_params
         self._initialize_joint_params(joint_params)
 
     def _initialize_joint_params(self, joint_params: JointParams):
@@ -321,38 +322,34 @@ class TransformTree:
         plt.savefig(filename)
         plt.show()
 
+    def _find_node(self, node: TreeNode, frame: str):
+        if node._frame_id == frame:
+            return node
+
+        elif node._child_frames.keys():
+            for node_child in node._child_frames.keys():
+                node = self._find_node(node_child, frame)
+                if node:
+                    return node
+
+        else:
+            return
+
+    def _get_joint_properties(self, joint_frame_id: str) -> JointParams:
+        joint_node = self._find_node(self._transform_tree, joint_frame_id)
+        joint_controlled_node = joint_node.get_child_node(joint_frame_id[:-6])
+        joint_to_joint_controlled_transform = joint_node._child_frames[
+            joint_controlled_node
+        ]
+
+        return joint_to_joint_controlled_transform._joint_params
+
     def update_joint_controlled_transform(self, frame_id: str, joint_position: float):
-        def find_node(node: TreeNode, frame: str) -> TreeNode:
-            if node._frame_id == frame:
-                return node
-
-            elif node._child_frames.keys():
-                for node_child in node._child_frames.keys():
-                    node = find_node(node_child, frame)
-                    if node:
-                        return node
-
-            else:
-                return
-
-        # A joint controls only 1 frame.
-        joint_node = find_node(self._transform_tree, frame_id + "_JOINT")
+        joint_node = self._find_node(self._transform_tree, frame_id + "_JOINT")
         joint_controlled_node = joint_node.get_child_node(frame_id)
         joint_node._child_frames[joint_controlled_node].update_transform(joint_position)
 
     def get_pose(self, parent_frame: str, child_frame: str) -> np.ndarray:
-        def find_parent_node(node: TreeNode, parent_frame: str) -> TreeNode:
-            if node._frame_id == parent_frame:
-                return node
-            elif node._child_frames.keys():
-                for node_child in node._child_frames.keys():
-                    node = find_parent_node(node_child, parent_frame)
-                    if node:
-                        return node
-
-            else:
-                return
-
         def get_transform_wrt_parent_node(
             parent_node: TreeNode, child_frame: str
         ) -> np.ndarray:
@@ -370,5 +367,85 @@ class TransformTree:
             else:
                 return None
 
-        parent_node = find_parent_node(self._transform_tree, parent_frame)
+        parent_node = self._find_node(self._transform_tree, parent_frame)
         return get_transform_wrt_parent_node(parent_node, child_frame)
+
+    def get_joint_axis_vector_wrt_robot(self, joint_frame_id: str):
+
+        rot_matrix = self.get_pose(self._transform_tree._frame_id, joint_frame_id)[
+            :3, :3
+        ]
+
+        joint_params = self._get_joint_properties(joint_frame_id)
+        joint_axis = joint_params.joint_axis
+        axis_vector = np.array([0, 0, 0])
+
+        if joint_axis == "x":
+            axis_vector[0] = 1
+        elif joint_axis == "-x":
+            axis_vector[0] = -1
+        elif joint_axis == "y":
+            axis_vector[1] = 1
+        elif joint_axis == "-y":
+            axis_vector[1] = -1
+        elif joint_axis == "z":
+            axis_vector[2] = 1
+        elif joint_axis == "-z":
+            axis_vector[2] = -1
+
+        return rot_matrix @ axis_vector
+
+    def get_joint_jacobian(
+        self, joint_frame_id: str, endpoint_frame_id: str
+    ) -> np.array:
+        joint_params = self._get_joint_properties(joint_frame_id)
+        joint_axis_vector = self.get_joint_axis_vector_wrt_robot(joint_frame_id)
+
+        if joint_params.joint_type == "prismatic":
+            return np.concatenate((joint_axis_vector, [0, 0, 0]))
+
+        elif joint_params.joint_type == "revolute":
+            joint_axis_position = self.get_pose(
+                self._transform_tree._frame_id, joint_frame_id
+            )[:3, -1]
+            endpoint_position = self.get_pose(
+                self._transform_tree._frame_id, endpoint_frame_id
+            )[:3, -1]
+
+            return np.concatenate(
+                (
+                    np.cross(
+                        joint_axis_vector, endpoint_position - joint_axis_position
+                    ),
+                    joint_axis_vector,
+                )
+            )
+
+    def get_complete_jacobian(self, endpoint_frame_id: str) -> np.array:
+        def get_jacobian_from_node(
+            curr_node: TreeNode, curr_jacobian: np.ndarray, endpoint_frame_id: str
+        ):
+            if curr_node._frame_id == endpoint_frame_id:
+                return curr_jacobian
+
+            if "_JOINT" in curr_node._frame_id:
+                curr_jacobian = np.vstack(
+                    (
+                        curr_jacobian,
+                        self.get_joint_jacobian(curr_node._frame_id, endpoint_frame_id),
+                    )
+                )
+
+            for child_node in curr_node._child_frames.keys():
+                jacobian = get_jacobian_from_node(
+                    child_node, curr_jacobian, endpoint_frame_id
+                )
+
+                if jacobian is not None:
+                    return jacobian
+
+            return
+
+        return get_jacobian_from_node(
+            self._transform_tree, np.array([0, 0, 0, 0, 0, 0]), endpoint_frame_id
+        )

@@ -23,13 +23,13 @@ def print_error(pose, pose_kinematics, name: str):
     print(f"{name} pose from kinematics : {pose_kinematics}")
     print(f"{name} pose ground truth : {pose}")
 
-    print("=============================================================")
     position_error = pose[:3, 3] - pose_kinematics[:3, 3]
     orientation_error = rotation_matrix_to_rot_vec(
         pose[:3, :3]
     ) - rotation_matrix_to_rot_vec(pose_kinematics[:3, :3])
     print(f"Position error = {np.sqrt(position_error @ np.transpose(position_error))}")
     print(f"Orientation_error = {orientation_error}")
+    print("=============================================================")
 
 
 def main():
@@ -40,6 +40,7 @@ def main():
     robot_handle = RobotDeviceIO(robot)
     robot_handle.initialize_devices(timestep)
     robot_handle.set_motors_vels(0, 0)
+    robot_handle.set_joint_positions({"arm_1_joint": np.inf})
 
     robot_body_handle = robot.getFromDef("TIAGO_ROBOT")
     torso_handle = robot.getFromDef("TORSO")
@@ -55,6 +56,7 @@ def main():
     right_gripper_handle = robot.getFromDef("RIGHT_GRIPPER")
 
     tiago_kinematics = TiagoKinematics()
+    robot_handle.set_joint_velocities({"arm_1_joint": 1.5})
 
     while robot.step(timestep) != -1:
 
@@ -146,7 +148,8 @@ def main():
             @ tiago_kinematics.transform_tree.get_pose("TIAGO_ROBOT", "RIGHT_GRIPPER")
         )
 
-        print_error(right_gripper_pose, right_gripper_pose_kinematics, "RIGHT_GRIPPER")
+        print_error(wrist_pose, wrist_pose_kinematics, "WRIST")
+        print(f"Jacobian for wrist = {tiago_kinematics.transform_tree.get_complete_jacobian("WRIST")}")
 
 
 if __name__ == "__main__":

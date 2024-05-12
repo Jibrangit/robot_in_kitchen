@@ -90,6 +90,10 @@ class RobotDeviceIO:
         for joint_name, joint_position in joint_positions.items():
             self._robot_joint_handles[joint_name].setPosition(joint_position)
 
+    def set_joint_velocities(self, joint_velocities: dict):
+        for joint_name, joint_velocity in joint_velocities.items():
+            self._robot_joint_handles[joint_name].setVelocity(joint_velocity)
+
     def get_force_feedback(self):
         return (
             self._robot_joint_handles["gripper_left_finger_joint"].getForceFeedback(),
@@ -122,7 +126,6 @@ class RobotDeviceIO:
         joint_positions = self.get_joint_positions()
         with open(filepath, "w") as outfile:
             yaml.dump(joint_positions, outfile, default_flow_style=False)
-
 
     def get_encoder_readings(self) -> tuple[float]:
         return self._leftEncoder.getValue(), self._rightEncoder.getValue()
