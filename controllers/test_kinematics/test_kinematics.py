@@ -58,6 +58,8 @@ def main():
     tiago_kinematics = TiagoKinematics()
     robot_handle.set_joint_velocities({"arm_1_joint": 1.5})
 
+    wrist_prev_position = [0, 0, 0]
+
     while robot.step(timestep) != -1:
 
         robot_pose = convert_to_2d_matrix(robot_body_handle.getPose())
@@ -72,6 +74,12 @@ def main():
         wrist_pose = convert_to_2d_matrix(wrist_handle.getPose())
         left_gripper_pose = convert_to_2d_matrix(left_gripper_handle.getPose())
         right_gripper_pose = convert_to_2d_matrix(right_gripper_handle.getPose())
+
+        wrist_position = wrist_pose[:3, -1]
+        wrist_velocity = (wrist_position - wrist_prev_position) / (timestep * 0.001)
+        print(f"Wrist velocity = {wrist_velocity}")
+        wrist_prev_position = wrist_position
+        
 
         joint_positions = robot_handle.get_joint_positions()
 
@@ -149,8 +157,9 @@ def main():
         )
 
         print_error(wrist_pose, wrist_pose_kinematics, "WRIST")
-        print(f"Jacobian for wrist = {tiago_kinematics.transform_tree.get_complete_jacobian("WRIST")}")
-
+        print("Jacobian for wrist =") 
+        jacobian = tiago_kinematics.transform_tree.get_complete_jacobian("WRIST")
+        print(jacobian)
 
 if __name__ == "__main__":
     main()

@@ -447,5 +447,5 @@ class TransformTree:
             return
 
         return get_jacobian_from_node(
-            self._transform_tree, np.array([0, 0, 0, 0, 0, 0]), endpoint_frame_id
+            self._transform_tree, np.empty((0, 6)), endpoint_frame_id
         )
