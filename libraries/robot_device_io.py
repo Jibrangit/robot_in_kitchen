@@ -10,7 +10,7 @@ class RobotDeviceIO:
     def __init__(self, robot: Union[Robot, Supervisor]):
         self._robot = robot
         self._robot_joints = {
-            "torso_lift_joint": 0.35,
+            "torso_lift_joint": 0.1,
             "arm_1_joint": 0.71,
             "arm_2_joint": 1.02,
             "arm_3_joint": -2.815,
@@ -18,8 +18,8 @@ class RobotDeviceIO:
             "arm_5_joint": 0,
             "arm_6_joint": 0,
             "arm_7_joint": 0,
-            "gripper_left_finger_joint": 0,
-            "gripper_right_finger_joint": 0,
+            "gripper_left_finger_joint": 0.001,
+            "gripper_right_finger_joint": 0.001,
             "head_1_joint": 0,
             "head_2_joint": 0,
         }  # Robot joint keys and safe values.

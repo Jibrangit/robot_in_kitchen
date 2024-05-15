@@ -290,4 +290,4 @@ class TiagoKinematics:
         self.transform_tree = TransformTree(
             parent_frame="TIAGO_ROBOT", transforms=self._transforms
         )
-        self.transform_tree.visualize_transform_tree()
+        # self.transform_tree.visualize_transform_tree()

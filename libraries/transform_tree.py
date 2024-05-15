@@ -421,12 +421,15 @@ class TransformTree:
                 )
             )
 
-    def get_complete_jacobian(self, endpoint_frame_id: str) -> np.array:
+    def get_complete_jacobian(self, endpoint_frame_id: str) -> tuple[list, np.array]:
         def get_jacobian_from_node(
-            curr_node: TreeNode, curr_jacobian: np.ndarray, endpoint_frame_id: str
+            curr_node: TreeNode,
+            curr_jacobian: np.ndarray,
+            endpoint_frame_id: str,
+            joint_list: list[str],
         ):
             if curr_node._frame_id == endpoint_frame_id:
-                return curr_jacobian
+                return curr_jacobian, joint_list
 
             if "_JOINT" in curr_node._frame_id:
                 curr_jacobian = np.vstack(
@@ -436,9 +439,12 @@ class TransformTree:
                     )
                 )
 
+                joint_params = self._get_joint_properties(curr_node._frame_id)
+                joint_list.append(joint_params.joint_name)
+
             for child_node in curr_node._child_frames.keys():
                 jacobian = get_jacobian_from_node(
-                    child_node, curr_jacobian, endpoint_frame_id
+                    child_node, curr_jacobian, endpoint_frame_id, joint_list
                 )
 
                 if jacobian is not None:
@@ -446,6 +452,8 @@ class TransformTree:
 
             return
 
-        return get_jacobian_from_node(
-            self._transform_tree, np.empty((0, 6)), endpoint_frame_id
+        jacobian, joint_list = get_jacobian_from_node(
+            self._transform_tree, np.empty((0, 6)), endpoint_frame_id, []
         )
+
+        return np.transpose(jacobian), joint_list
