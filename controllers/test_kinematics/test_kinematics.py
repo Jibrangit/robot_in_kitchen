@@ -14,6 +14,7 @@ from libraries.robot_device_io import RobotDeviceIO
 from libraries.transformations import *
 from libraries.tiago_kinematics import *
 from copy import deepcopy
+from scipy.spatial.transform import Rotation as R
 
 
 def convert_to_2d_matrix(array: list):
@@ -35,7 +36,6 @@ def print_error(pose, pose_kinematics, name: str):
 
 def clamp_error(error_vec):
     new_error_vec = error_vec.reshape(1, len(error_vec))[0]
-    print(new_error_vec)
     D_max = 1e-2
     for idx, error in enumerate(new_error_vec):
         if error > 0:
@@ -92,8 +92,6 @@ def main():
     tiago_kinematics = TiagoKinematics()
     robot_handle.set_joint_velocities({"arm_1_joint": 1.5})
 
-    wrist_prev_position = [0, 0, 0]
-    goal_wrist_position = None
 
     first = False
 
@@ -112,10 +110,6 @@ def main():
         left_gripper_pose = convert_to_2d_matrix(left_gripper_handle.getPose())
         right_gripper_pose = convert_to_2d_matrix(right_gripper_handle.getPose())
 
-        wrist_position = wrist_pose[:3, -1]
-        wrist_velocity = (wrist_position - wrist_prev_position) / (timestep * 0.001)
-        # print(f"Wrist velocity = {wrist_velocity}")
-        wrist_prev_position = wrist_position
 
         joint_positions = robot_handle.get_joint_positions()
 
@@ -196,39 +190,35 @@ def main():
             "TIAGO_ROBOT", "WRIST"
         )
         wrist_position_kinematics = wrist_pose_wrt_robot[:3, -1]
-        # robot_handle.joints_to_home_positions()
-
-        # print_error(wrist_pose, wrist_pose_kinematics, "WRIST")
+        wrist_orientation_kinematics = R.from_matrix(wrist_pose_wrt_robot[:3, :3]).as_euler(seq="xyz", degrees=False)
+        wrist_pose_wrt_robot_rpy = np.concatenate((wrist_position_kinematics, wrist_orientation_kinematics))
 
         jacobian, joint_list = tiago_kinematics.transform_tree.get_complete_jacobian(
             "WRIST"
         )
-        # print(joint_list)
-
         if np.linalg.det(jacobian @ np.transpose(jacobian)) < 1e-2:
             print("Jacobian is singular!!!!!!!!!")
 
         linear_jacobian = jacobian[:3, :]
-        # print(np.transpose(linear_jacobian))
-        # print("===============================")
 
         if not first:
-            goal_wrist_position = deepcopy(wrist_position_kinematics)
-            goal_wrist_position[0] += 0.1
-            goal_wrist_position[1] += 0.3
-            goal_wrist_position[2] -= 0.1
+            goal_wrist_pose = deepcopy(wrist_pose_wrt_robot_rpy)
+            goal_wrist_pose[0] -= 0.1
+            goal_wrist_pose[1] -= 0.1
+            goal_wrist_pose[2] -= 0.3
+            goal_wrist_pose[3] = 0
+            goal_wrist_pose[4] = 0
+            goal_wrist_pose[5] = 1
             first = True
+        
 
-        error = goal_wrist_position - wrist_position_kinematics
-        error = error.reshape(3, 1)
+        error = goal_wrist_pose - wrist_pose_wrt_robot_rpy
+        error = error.reshape(6, 1)
         error = clamp_error(error)
 
-        # print(error)
-        # print("================================")
-        # print(np.transpose(linear_jacobian) @ error)
 
-        ALPHA = 0.5
-        joint_position_increments = ALPHA * np.transpose(linear_jacobian) @ error
+        ALPHA = 2
+        joint_position_increments = ALPHA * np.transpose(jacobian) @ error
 
         current_joint_positions = robot_handle.get_joint_positions()
         joint_setpoints = {}
@@ -240,9 +230,8 @@ def main():
 
         robot_handle.set_joint_positions(joint_setpoints)
 
-        print(f"Error = {error}")
         if get_error_mag(error) < 1e-3:
-            print("Wrist has successfully reached its position within 1 mm.")
+            print("Wrist has successfully reached its pose with a tolerance of 1e-3.")
             break
 
         

@@ -291,3 +291,13 @@ class TiagoKinematics:
             parent_frame="TIAGO_ROBOT", transforms=self._transforms
         )
         # self.transform_tree.visualize_transform_tree()
+
+    def generate_joint_positions_for_pose(
+        self,
+        end_effector_pose: np.ndarray,
+        end_effector_frame: str = "WRIST",
+        tolerance: float = 1e-3,
+    ):
+        ALPHA = 2
+
+        pass
