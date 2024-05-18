@@ -49,7 +49,7 @@ class DynamicTransform(Transform):
         self._joint_initial_position = joint_params.joint_initial_position
         self._endpoint_offset = joint_params.endpoint_offset
 
-    def _get_transform_with_revolute_joint(self, joint_position: float):
+    def _get_transform_with_revolute_joint(self, joint_position: float) -> np.ndarray:
         if self._joint_axis == "x":
             transform = np.array(
                 [
@@ -214,6 +214,13 @@ class DynamicTransform(Transform):
                 [0, 0, 0, 1],
             ]
         )
+
+    def get_transform_for_joint(self, joint_position: float) -> np.ndarray:
+        joint_position -= self._joint_initial_position
+        if self._joint_type == "revolute":
+            return self._get_transform_with_revolute_joint(joint_position)
+        elif self._joint_type == "prismatic":
+            return self._get_transform_with_prismatic_joint(joint_position)
 
     def update_transform(self, joint_position: float):
         joint_position -= self._joint_initial_position
@@ -457,3 +464,60 @@ class TransformTree:
         )
 
         return np.transpose(jacobian), joint_list
+
+    def _get_pose_from_joint_position(
+        self, joint_position: float, joint_frame_id: str, joint_controlled_frame_id: str
+    ):
+        joint_node = self._find_node(self._transform_tree, joint_frame_id)
+        joint_controlled_node = joint_node.get_child_node(joint_controlled_frame_id)
+        return joint_node._child_frames[joint_controlled_node].get_transform_for_joint(
+            joint_position
+        )
+
+    def _get_transform_from_node_to_endpoint(
+        self, node: TreeNode, joint_positions: dict, endpoint_frame_id: str
+    ):
+        if node._frame_id == endpoint_frame_id:
+            return np.eye(4)
+
+        for child_node in node._child_frames.keys():
+            children_transform = self._get_transform_from_node_to_endpoint(
+                child_node, joint_positions, endpoint_frame_id
+            )
+
+            if children_transform is not None:
+                if (
+                    "_JOINT" in node._frame_id
+                    and child_node._frame_id in node._frame_id
+                    and node._child_frames[child_node]._joint_params.joint_name
+                    in joint_positions.keys()
+                ):
+                    return (
+                        self._get_pose_from_joint_position(
+                            joint_positions[
+                                node._child_frames[child_node]._joint_params.joint_name
+                            ],
+                            node._frame_id,
+                            child_node._frame_id,
+                        )
+                        @ children_transform
+                    )
+
+                else:
+                    return (
+                        node._child_frames[child_node].transformation
+                        @ children_transform
+                    )
+
+        return
+
+    def get_pose_from_joint_positions(
+        self, joint_positions: dict, endpoint_frame_id: str
+    ):
+        """
+        Used mainly for path planning purposes, where we wish to get a pose given joint positions, but don't want to update the joint positions.
+        """
+
+        return self._get_transform_from_node_to_endpoint(
+            self._transform_tree, joint_positions, endpoint_frame_id
+        )

@@ -2,6 +2,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 from libraries.motion_planning import RRT, astar_weighted_graph
 
+import sys
+import os
+
+root_dir = os.getenv("HOME") + "/webots/robot_planning"
+sys.path.append(root_dir)
+
 if __name__ == "__main__":
     np.random.seed(14)
 

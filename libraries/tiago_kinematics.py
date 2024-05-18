@@ -1,5 +1,6 @@
 import sys
 import os
+from dataclasses import dataclass
 
 root_dir = os.getenv("HOME") + "/webots/robot_planning"
 sys.path.append(root_dir)
@@ -7,6 +8,69 @@ sys.path.append(root_dir)
 import numpy as np
 
 from libraries.transform_tree import *
+from scipy.spatial.transform import Rotation as R
+
+DEGREES_OF_FREEDOM = 6
+
+
+class SingularJacobianException(Exception):
+    pass
+
+
+class JointLimitException(Exception):
+    pass
+
+
+def clamp_error(error_vec: np.ndarray) -> np.ndarray:
+    new_error_vec = error_vec.reshape(1, len(error_vec))[0]
+    D_max = 1e-2
+    for idx, error in enumerate(new_error_vec):
+        if error > 0:
+            if error > D_max:
+                new_error_vec[idx] = D_max
+
+        elif error < 0:
+            if error < -D_max:
+                new_error_vec[idx] = -D_max
+
+    return new_error_vec.reshape(len(error_vec), 1)
+
+
+@dataclass
+class TiagoRobotJointPositionLimits:
+    torso_lift_joint = (0, 0.35)
+    arm_1_joint = (0.07, 2.68)
+    arm_2_joint = (-1.5, 1.02)
+    arm_3_joint = (-3.46, 1.5)
+    arm_4_joint = (-0.32, 2.29)
+    arm_5_joint = (-2.07, 2.07)
+    arm_6_joint = (-1.39, 1.39)
+    arm_7_joint = (-2.07, 2.07)
+
+    def check_joint_limits(self, joint_positions: dict) -> bool:
+        for joint_name, joint_position in joint_positions.items():
+            # Get the limits for the joint
+            joint_limits = getattr(self, joint_name)
+            lower_limit, upper_limit = joint_limits
+
+            # Check if the position is within the limits
+            if not (lower_limit <= joint_position <= upper_limit):
+                return False
+
+        # All joints are within limits
+        return True
+
+
+@dataclass
+class RobotArmNode:
+    parent: None
+    pose: np.ndarray
+    joint_angles: np.ndarray
+
+
+def set_parent(child: RobotArmNode, parent_node: RobotArmNode):
+    child.parent = parent_node
+
 
 
 class TiagoKinematics:
@@ -48,6 +112,8 @@ class TiagoKinematics:
             0.5773505717223996,
             2.094400907596659,
         ]
+
+        self.joint_limits = TiagoRobotJointPositionLimits()
 
         self._transforms = [
             Transform(
@@ -292,12 +358,36 @@ class TiagoKinematics:
         )
         # self.transform_tree.visualize_transform_tree()
 
-    def generate_joint_positions_for_pose(
+    def generate_joint_position_increments_for_pose(
         self,
-        end_effector_pose: np.ndarray,
+        goal_pose: np.ndarray,
         end_effector_frame: str = "WRIST",
-        tolerance: float = 1e-3,
-    ):
+    ) -> tuple[np.ndarray, list]:
         ALPHA = 2
+        pose_wrt_robot = self.transform_tree.get_pose("TIAGO_ROBOT", end_effector_frame)
+        position_wrt_robot = pose_wrt_robot[:3, -1]
+        orientation_wrt_robot = R.from_matrix(pose_wrt_robot[:3, :3]).as_euler(
+            seq="xyz", degrees=False
+        )
+        pose_wrt_robot_rpy = np.concatenate((position_wrt_robot, orientation_wrt_robot))
 
+        jacobian, joint_list = self.transform_tree.get_complete_jacobian(
+            end_effector_frame
+        )
+
+        if np.linalg.det(jacobian @ np.transpose(jacobian)) < 1e-2:
+            raise SingularJacobianException
+
+        error = goal_pose - pose_wrt_robot_rpy
+        error = error.reshape(DEGREES_OF_FREEDOM, 1)
+        error = clamp_error(error)
+
+        joint_position_increments = ALPHA * np.transpose(jacobian) @ error
+
+        return (
+            joint_position_increments.flatten(),
+            joint_list,
+        )
+
+    def plan_to_goal(self, goal: tuple, goal_bias: float = 0.1):
         pass
